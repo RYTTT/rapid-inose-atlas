@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organism {
+  id               String   @id @default(uuid())
+  genus            String
+  species          String
+  gramStatus       String
+  kingdom          String
+  clinicalRelevance String?
+  strains          Strain[]
+}
+
+model Strain {
+  id               String       @id @default(uuid())
+  organismId       String
+  strainName       String
+  sourceType       String
+  clinicalContext  String?
+  amrStatus        String?
+  organism         Organism     @relation(fields: [organismId], references: [id])
+  experiments      Experiment[]
+}
+
+model CultureCondition {
+  id              String       @id @default(uuid())
+  mediaName       String
+  vendor          String?
+  temperature     Float
+  oxygenCondition String
+  experiments     Experiment[]
+}
+
+model SensorArray {
+  id               String       @id @default(uuid())
+  arrayVersion     String
+  sensorGeneration String
+  qcStatus         String
+  experiments      Experiment[]
+}
+
+model Experiment {
+  id              String            @id @default(uuid())
+  isolateId       String
+  conditionId     String
+  arrayId         String
+  runDate         DateTime          @default(now())
+  duration        Int               // in minutes
+  strain          Strain            @relation(fields: [isolateId], references: [id])
+  condition       CultureCondition  @relation(fields: [conditionId], references: [id])
+  sensorArray        SensorArray         @relation(fields: [arrayId], references: [id])
+  timeSeriesData     TimeSeriesData[]
+  metaboliteProfiles MetaboliteProfile[]
+}
+
+model TimeSeriesData {
+  id               String     @id @default(uuid())
+  experimentId     String
+  sensorId         String
+  time             Int        // seconds from start
+  rawSignal        Float
+  normalizedSignal Float
+  experiment       Experiment @relation(fields: [experimentId], references: [id])
+}
+
+model MetaboliteProfile {
+  id               String              @id @default(uuid())
+  experimentId     String
+  instrumentMethod String
+  runDate          DateTime            @default(now())
+  experiment       Experiment          @relation(fields: [experimentId], references: [id])
+  peaks            ChromatogramPeak[]
+}
+
+model ChromatogramPeak {
+  id               String            @id @default(uuid())
+  profileId        String
+  retentionTime    Float             // in minutes
+  area             Float
+  intensity        Float
+  compoundName     String?           // Identified VOC
+  matchScore       Float?            // Database match score (e.g., NIST)
+  profile          MetaboliteProfile @relation(fields: [profileId], references: [id])
+}
