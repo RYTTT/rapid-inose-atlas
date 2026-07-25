@@ -65,7 +65,7 @@ export default function SensorViewerPage() {
         {/* Left Column: Chart */}
         <div className="glass-panel" style={{ flex: 2, display: 'flex', flexDirection: 'column', padding: '24px' }}>
           <h2 style={{ fontSize: '1.1rem', marginBottom: '16px', color: 'var(--text-primary)' }}>Real-Time Sensor Kinetics</h2>
-          <div style={{ flex: 1, minHeight: 400 }}>
+          <div style={{ height: '400px', width: '100%' }}>
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>

@@ -8,7 +8,10 @@ export default function MetabolitesPage() {
   const [selectedRun, setSelectedRun] = useState<any>(null);
   const [gcmsData, setGcmsData] = useState<any[]>([]);
 
+  const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
+    setIsMounted(true);
     async function fetchRuns() {
       try {
         const res = await fetch('/api/runs');
@@ -59,9 +62,10 @@ export default function MetabolitesPage() {
 
       <div className="glass-panel" style={{ flex: 1, padding: '24px', display: 'flex', flexDirection: 'column' }}>
         <h2 style={{ fontSize: '1.1rem', marginBottom: '16px', color: 'var(--text-primary)' }}>Chromatogram Peaks</h2>
-        <div style={{ flex: 1, minHeight: 400 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={gcmsData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+        <div style={{ height: '400px', width: '100%' }}>
+          {isMounted && (
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={gcmsData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
               <XAxis 
                 dataKey="retentionTime" 
@@ -82,8 +86,9 @@ export default function MetabolitesPage() {
                   <Cell key={`cell-${index}`} fill="var(--accent-purple)" />
                 ))}
               </Bar>
-            </ComposedChart>
-          </ResponsiveContainer>
+              </ComposedChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
     </div>

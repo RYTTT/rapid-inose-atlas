@@ -14,8 +14,10 @@ export default function AtlasHome() {
     strains: 0,
     experiments: 0
   });
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     // Fetch stats from API
     async function fetchStats() {
       try {
@@ -185,47 +187,51 @@ export default function AtlasHome() {
         <div className={`glass-panel ${styles.chartCard}`}>
           <h2 className={styles.chartTitle}>Database Maturity by Pathogen Class</h2>
           <div className={styles.chartContainer}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={maturityData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                <XAxis dataKey="name" stroke="var(--text-secondary)" tick={{fill: 'var(--text-secondary)'}} />
-                <YAxis stroke="var(--text-secondary)" tick={{fill: 'var(--text-secondary)'}} />
-                <RechartsTooltip 
-                  contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                />
-                <Legend />
-                <Bar dataKey="Reference" stackId="a" fill="var(--accent-primary)" />
-                <Bar dataKey="Clinical" stackId="a" fill="var(--accent-secondary)" />
-                <Bar dataKey="GCMS" stackId="a" fill="var(--accent-purple)" />
-              </BarChart>
-            </ResponsiveContainer>
+            {isMounted && (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={maturityData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                  <XAxis dataKey="name" stroke="var(--text-secondary)" tick={{fill: 'var(--text-secondary)'}} />
+                  <YAxis stroke="var(--text-secondary)" tick={{fill: 'var(--text-secondary)'}} />
+                  <RechartsTooltip 
+                    contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                  />
+                  <Legend />
+                  <Bar dataKey="Reference" stackId="a" fill="var(--accent-primary)" />
+                  <Bar dataKey="Clinical" stackId="a" fill="var(--accent-secondary)" />
+                  <Bar dataKey="GCMS" stackId="a" fill="var(--accent-purple)" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         <div className={`glass-panel ${styles.chartCard}`}>
           <h2 className={styles.chartTitle}>Clinical Source Diversity</h2>
           <div className={styles.chartContainer}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={coverageData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {coverageData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <RechartsTooltip 
-                  contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                />
-                <Legend verticalAlign="bottom" height={36}/>
-              </PieChart>
-            </ResponsiveContainer>
+            {isMounted && (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={coverageData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {coverageData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip 
+                    contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                  />
+                  <Legend verticalAlign="bottom" height={36}/>
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>

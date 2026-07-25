@@ -42,11 +42,11 @@ export default function MicrobesPage() {
                   padding: '4px 8px', 
                   borderRadius: '4px', 
                   fontSize: '0.75rem', 
-                  background: org.gramStatus.includes('positive') ? 'var(--accent-purple)' : 'var(--accent-danger)',
+                  background: org.gramStatus?.toLowerCase().includes('positive') ? 'var(--accent-purple)' : 'var(--accent-danger)',
                   color: '#fff',
                   fontWeight: 600
                 }}>
-                  {org.gramStatus}
+                  {org.gramStatus || 'Unknown Gram'}
                 </span>
               </div>
               
@@ -57,7 +57,7 @@ export default function MicrobesPage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
                   <MapPin size={16} />
-                  <span><strong>Strains:</strong> {org.strains.length} isolates recorded</span>
+                  <span><strong>Strains:</strong> {org.strains?.length || 0} isolates recorded</span>
                 </div>
               </div>
 
