@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const timeSeriesData = [];
     const sensors = ['NBF-S01', 'NBF-S02', 'NBF-S03', 'NBF-S04', 'NBF-S05', 'NBF-S06'];
 
-    for (const record of records) {
+    for (const record of records as any[]) {
       const time = record['Time'] || record['time'];
       if (time === undefined) continue;
 

@@ -74,7 +74,7 @@ export default function MetabolitesPage() {
               <RechartsTooltip 
                 contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                 labelFormatter={(label) => `RT: ${label} min`}
-                formatter={(value: any, name: string, props: any) => [value, props.payload.compoundName || 'Unknown']}
+                formatter={(value: any, name: any, props: any) => [value, props.payload.compoundName || 'Unknown']}
               />
               {/* Using Bar with minimal width to simulate peaks/sticks often used in simple mass spec vis */}
               <Bar dataKey="intensity" barSize={4}>
