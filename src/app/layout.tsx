@@ -2,12 +2,12 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import "./globals.css";
 import styles from "./layout.module.css";
 import { 
   Database, Home, Activity, Beaker, Network, FlaskConical, ShieldAlert, 
-  GitCompare, Cpu, Brain, Users, ShieldCheck, Search, FileText, Lock, Eye, CheckCircle2
+  GitCompare, Cpu, Brain, Users, ShieldCheck, Search, FileText, Lock, Eye, Menu, X
 } from "lucide-react";
 
 export default function RootLayout({
@@ -21,6 +21,9 @@ export default function RootLayout({
   const [dataTier, setDataTier] = useState<'Bronze' | 'Silver' | 'Gold'>('Silver');
   const [viewMode, setViewMode] = useState<'Customer' | 'Internal R&D'>('Customer');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   useEffect(() => {
     const savedTier = localStorage.getItem('rapid_data_tier') as any;
@@ -86,11 +89,16 @@ export default function RootLayout({
       <head>
         <title>RAPID-iNose™ Microbial VOC & Sensor Intelligence Atlas</title>
         <meta name="description" content="Microbial VOC & Nanosensor Response Intelligence Atlas" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </head>
       <body>
         <div className={styles.layoutContainer}>
+          {/* Mobile overlay */}
+          {sidebarOpen && (
+            <div className={styles.sidebarOverlay} onClick={closeSidebar} />
+          )}
           {/* Left Sidebar */}
-          <aside className={styles.sidebar}>
+          <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
             <div className={styles.sidebarHeader}>
               <div style={{ width: 32, height: 32, borderRadius: '8px', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Database size={20} color="#fff" />
@@ -115,6 +123,7 @@ export default function RootLayout({
                         key={item.href}
                         href={item.href}
                         className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+                        onClick={closeSidebar}
                       >
                         <Icon size={16} />
                         <span>{item.label}</span>
@@ -157,11 +166,18 @@ export default function RootLayout({
             {/* Topbar Header — simplified for investors */}
             <header className={styles.topbar}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  className={styles.menuToggle}
+                  onClick={() => setSidebarOpen(prev => !prev)}
+                  aria-label="Toggle menu"
+                >
+                  {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
+                </button>
                 <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.3px' }}>
                   RAPID-iNose™
                 </span>
-                <span style={{ height: 14, width: 1, background: 'var(--border-color)' }}></span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Microbial Intelligence Atlas</span>
+                <span className="hide-mobile" style={{ height: 14, width: 1, background: 'var(--border-color)' }}></span>
+                <span className="hide-mobile" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Microbial Intelligence Atlas</span>
               </div>
 
               <div className={styles.topbarActions}>
