@@ -11,21 +11,47 @@ import { ChevronRight, Zap, Clock, Target, Shield } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    DATA
-────────────────────────────────────────────── */
+/* Real sensor data: FB-v0 dataset, LW60, mean of 3 replicates per organism.
+   Source: rapid-inose-atlas-production.up.railway.app/api/public/v1/timeseries/ */
+const kineticData = [
+  {t:0,     'P. aeruginosa':-0.1276, 'E. coli':-0.0864, 'S. aureus':0.0313},
+  {t:0.83,  'P. aeruginosa':-0.0101, 'E. coli':-0.02,   'S. aureus':-0.0189},
+  {t:1.67,  'P. aeruginosa':-0.0003, 'E. coli':-0.0017, 'S. aureus':-0.0078},
+  {t:2.5,   'P. aeruginosa':0.0022,  'E. coli':0.0004,  'S. aureus':-0.0027},
+  {t:3.33,  'P. aeruginosa':0.0023,  'E. coli':-0.0002, 'S. aureus':0.0019},
+  {t:4.17,  'P. aeruginosa':0.0059,  'E. coli':0.0056,  'S. aureus':0.006},
+  {t:5,     'P. aeruginosa':0.0176,  'E. coli':0.0092,  'S. aureus':0.0116},
+  {t:5.83,  'P. aeruginosa':0.0405,  'E. coli':0.0149,  'S. aureus':0.0234},
+  {t:6.67,  'P. aeruginosa':0.0511,  'E. coli':0.0356,  'S. aureus':0.0398},
+  {t:7.5,   'P. aeruginosa':0.0707,  'E. coli':0.1318,  'S. aureus':0.0545},
+  {t:8.33,  'P. aeruginosa':0.1149,  'E. coli':0.1577,  'S. aureus':0.0648},
+  {t:9.17,  'P. aeruginosa':0.1704,  'E. coli':0.1433,  'S. aureus':0.0726},
+  {t:10,    'P. aeruginosa':0.2161,  'E. coli':0.134,   'S. aureus':0.0855},
+  {t:10.83, 'P. aeruginosa':0.2489,  'E. coli':0.1286,  'S. aureus':0.0948},
+  {t:11.67, 'P. aeruginosa':0.2722,  'E. coli':0.1531,  'S. aureus':0.105},
+  {t:12.5,  'P. aeruginosa':0.2902,  'E. coli':0.2037,  'S. aureus':0.1201},
+  {t:13.33, 'P. aeruginosa':0.3041,  'E. coli':0.2624,  'S. aureus':0.1379},
+  {t:14.17, 'P. aeruginosa':0.3147,  'E. coli':0.2896,  'S. aureus':0.1529},
+  {t:15,    'P. aeruginosa':0.3113,  'E. coli':0.303,   'S. aureus':0.1665},
+  {t:15.83, 'P. aeruginosa':0.3045,  'E. coli':0.3138,  'S. aureus':0.18},
+  {t:16.67, 'P. aeruginosa':0.311,   'E. coli':0.3128,  'S. aureus':0.1881},
+  {t:17.5,  'P. aeruginosa':0.3202,  'E. coli':0.3166,  'S. aureus':0.1931},
+  {t:18.33, 'P. aeruginosa':0.3318,  'E. coli':0.3331,  'S. aureus':0.2019},
+  {t:20,    'P. aeruginosa':0.3532,  'E. coli':0.3241,  'S. aureus':0.2063},
+  {t:22.5,  'P. aeruginosa':0.3822,  'E. coli':0.3068,  'S. aureus':0.2149},
+  {t:25,    'P. aeruginosa':0.405,   'E. coli':0.2872,  'S. aureus':0.2244},
+  {t:27.5,  'P. aeruginosa':0.4273,  'E. coli':0.2622,  'S. aureus':0.2355},
+  {t:30,    'P. aeruginosa':0.4445,  'E. coli':0.2502,  'S. aureus':0.2411},
+  {t:32.5,  'P. aeruginosa':0.4639,  'E. coli':0.2521,  'S. aureus':0.2521},
+  {t:35,    'P. aeruginosa':0.4822,  'E. coli':0.2532,  'S. aureus':0.2623},
+  {t:37.5,  'P. aeruginosa':0.4963,  'E. coli':0.2541,  'S. aureus':0.2721},
+  {t:40,    'P. aeruginosa':0.5108,  'E. coli':0.2488,  'S. aureus':0.2791},
+  {t:42.5,  'P. aeruginosa':0.5222,  'E. coli':0.2455,  'S. aureus':0.2878},
+  {t:45,    'P. aeruginosa':0.5296,  'E. coli':0.2488,  'S. aureus':0.296},
+];
 
-const kineticData = Array.from({ length: 25 }, (_, i) => {
-  const t = i * 0.5;
-  return {
-    t: t.toFixed(1),
-    'P. aeruginosa': +(Math.min(0.98, 0.02 + 0.35 * (1 - Math.exp(-1.8 * Math.max(0, t - 1.2))) + (Math.random() * 0.015))).toFixed(3),
-    'E. coli':        +(Math.min(0.92, 0.01 + 0.28 * (1 - Math.exp(-1.4 * Math.max(0, t - 2.0))) + (Math.random() * 0.015))).toFixed(3),
-    'S. aureus':      +(Math.min(0.85, 0.02 + 0.22 * (1 - Math.exp(-1.1 * Math.max(0, t - 2.8))) + (Math.random() * 0.015))).toFixed(3),
-    'Control':        +(0.01 + Math.random() * 0.012).toFixed(3),
-  };
-});
-
-const SENSOR_COLORS = ['#38bdf8', '#a78bfa', '#fb923c', '#475569'];
-const SENSOR_KEYS = ['P. aeruginosa', 'E. coli', 'S. aureus', 'Control'];
+const SENSOR_COLORS = ['#38bdf8', '#a78bfa', '#fb923c'];
+const SENSOR_KEYS = ['P. aeruginosa', 'E. coli', 'S. aureus'];
 
 /* ─────────────────────────────────────────────
    PAGE
@@ -228,41 +254,44 @@ export default function AtlasHome() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis
                   dataKey="t"
+                  type="number"
                   stroke="var(--text-muted)"
                   tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
                   label={{ value: 'Time (hours)', position: 'insideBottom', offset: -4, fill: 'var(--text-muted)', fontSize: 10 }}
-                  ticks={['0.0','2.0','4.0','6.0','8.0','10.0','12.0']}
+                  domain={[0, 'dataMax']}
                 />
                 <YAxis
                   stroke="var(--text-muted)"
                   tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
-                  domain={[0, 1]}
-                  tickFormatter={(v) => `${Math.round(v * 100)}%`}
-                  width={38}
+                  domain={['auto', 'auto']}
+                  tickFormatter={(v) => v.toFixed(2)}
+                  width={42}
+                  label={{ value: 'ΔR/R₀ (normalized)', angle: -90, position: 'insideLeft', offset: 16, fill: 'var(--text-muted)', fontSize: 9 }}
                 />
                 <RechartsTooltip
                   contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.78rem' }}
-                  formatter={(v: unknown, name: unknown) => [`${((v as number) * 100).toFixed(1)}%`, name as string]}
+                  formatter={(v: unknown, name: unknown) => [(v as number).toFixed(4), name as string]}
                   labelFormatter={(l) => `${l}h`}
                 />
                 <Legend wrapperStyle={{ fontSize: '0.72rem', paddingTop: '8px' }} />
-                <ReferenceLine x="2.5" stroke="#f59e0b" strokeDasharray="4 3" label={{ value: 'Onset', fill: '#f59e0b', fontSize: 10, position: 'top' }} />
+                <ReferenceLine x={6} stroke="#f59e0b" strokeDasharray="4 3" label={{ value: 'Detection Onset', fill: '#f59e0b', fontSize: 9, position: 'top' }} />
                 {SENSOR_KEYS.map((k, i) => (
                   <Line
                     key={k}
                     type="monotone"
                     dataKey={k}
                     stroke={SENSOR_COLORS[i]}
-                    strokeWidth={k === 'Control' ? 1 : 2}
+                    strokeWidth={2}
                     dot={false}
-                    strokeDasharray={k === 'Control' ? '4 4' : undefined}
-                    opacity={k === 'Control' ? 0.4 : 1}
                   />
                 ))}
               </LineChart>
             </ResponsiveContainer>
-          )}
+           )}
         </div>
+        <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '6px', textAlign: 'center', fontStyle: 'italic' }}>
+          Real published data · FB-v0 dataset · LW60 sensor · Mean of 3 replicates per organism · Source: NanoBioFAB RAPID-iNose Sensor Atlas
+        </p>
       </section>
 
       {/* ── VALIDATION + MARKET ── */}
