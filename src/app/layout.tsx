@@ -46,19 +46,39 @@ export default function RootLayout({
     router.push(`/microbes?search=${encodeURIComponent(searchQuery.trim())}`);
   };
 
-  const navItems = [
-    { href: '/', label: 'Atlas Home', icon: Home },
-    { href: '/microbes', label: 'Microbe Explorer', icon: Activity },
-    { href: '/conditions', label: 'Condition Explorer', icon: Beaker },
-    { href: '/sensors', label: 'Sensor Viewer', icon: Network },
-    { href: '/metabolites', label: 'Metabolite Explorer', icon: FlaskConical },
-    { href: '/amr-biofilm', label: 'AMR & Biofilm Module', icon: ShieldAlert },
-    { href: '/compare', label: 'Compare Lab', icon: GitCompare },
-    { href: '/sensor-optimizer', label: 'Sensor Optimizer', icon: Cpu },
-    { href: '/ai-models', label: 'AI Model Center', icon: Brain },
-    { href: '/customer-solutions', label: 'Customer Solutions', icon: Users },
-    { href: '/governance', label: 'Data Governance & IP', icon: ShieldCheck },
-    { href: '/reports', label: 'Reports & Export', icon: FileText },
+  const navGroups = [
+    {
+      label: 'Explore',
+      items: [
+        { href: '/', label: 'Overview', icon: Home },
+        { href: '/microbes', label: 'Microbe Explorer', icon: Activity },
+        { href: '/amr-biofilm', label: 'AMR & Resistance', icon: ShieldAlert },
+      ],
+    },
+    {
+      label: 'Science',
+      items: [
+        { href: '/sensors', label: 'Sensor Data', icon: Network },
+        { href: '/metabolites', label: 'Metabolites (VOCs)', icon: FlaskConical },
+        { href: '/conditions', label: 'Growth Conditions', icon: Beaker },
+      ],
+    },
+    {
+      label: 'Platform',
+      items: [
+        { href: '/ai-models', label: 'AI Models', icon: Brain },
+        { href: '/compare', label: 'Compare Lab', icon: GitCompare },
+        { href: '/sensor-optimizer', label: 'Sensor Optimizer', icon: Cpu },
+      ],
+    },
+    {
+      label: 'Business',
+      items: [
+        { href: '/customer-solutions', label: 'Customer Solutions', icon: Users },
+        { href: '/reports', label: 'Reports & Export', icon: FileText },
+        { href: '/governance', label: 'Governance & IP', icon: ShieldCheck },
+      ],
+    },
   ];
 
   return (
@@ -82,111 +102,110 @@ export default function RootLayout({
             </div>
             
             <nav className={styles.navLinks}>
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
-                  >
-                    <Icon size={17} />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
+              {navGroups.map((group) => (
+                <div key={group.label}>
+                  <div style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', padding: '10px 12px 4px' }}>
+                    {group.label}
+                  </div>
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+                      >
+                        <Icon size={16} />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
             </nav>
             
-            {/* Sidebar Footer Status */}
-            <div style={{ marginTop: 'auto', padding: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Dataset Status</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-tertiary)', padding: '6px 10px', borderRadius: '6px', fontSize: '0.8rem' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Maturity Tier</span>
-                <span className={`badge ${dataTier === 'Gold' ? 'badge-amber' : dataTier === 'Silver' ? 'badge-blue' : 'badge-emerald'}`}>
-                  {dataTier}
-                </span>
+            {/* Sidebar Footer: Maturity Tier Selector */}
+            <div style={{ marginTop: 'auto', padding: '14px 12px', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Data Tier</div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {(['Bronze', 'Silver', 'Gold'] as const).map(tier => (
+                  <button
+                    key={tier}
+                    onClick={() => handleTierChange(tier)}
+                    style={{
+                      flex: 1,
+                      padding: '4px 0',
+                      borderRadius: '8px',
+                      border: `1px solid ${dataTier === tier ? (tier === 'Gold' ? '#f59e0b' : tier === 'Silver' ? '#3b82f6' : '#10b981') : 'var(--border-color)'}`,
+                      background: dataTier === tier ? (tier === 'Gold' ? 'rgba(245,158,11,0.15)' : tier === 'Silver' ? 'rgba(59,130,246,0.15)' : 'rgba(16,185,129,0.15)') : 'transparent',
+                      color: dataTier === tier ? (tier === 'Gold' ? '#f59e0b' : tier === 'Silver' ? '#60a5fa' : '#34d399') : 'var(--text-muted)',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {tier}
+                  </button>
+                ))}
               </div>
             </div>
           </aside>
 
           {/* Main Workspace */}
           <main className={styles.mainContent}>
-            {/* Topbar Header */}
+            {/* Topbar Header — simplified for investors */}
             <header className={styles.topbar}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  RAPID-iNose Atlas Platform
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.3px' }}>
+                  RAPID-iNose™
                 </span>
-                <span style={{ height: 16, width: 1, background: 'var(--border-color)' }}></span>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {(['Bronze', 'Silver', 'Gold'] as const).map(tier => (
-                    <button
-                      key={tier}
-                      onClick={() => handleTierChange(tier)}
-                      style={{
-                        padding: '3px 10px',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border-color)',
-                        background: dataTier === tier ? 'var(--accent-primary)' : 'transparent',
-                        color: dataTier === tier ? '#fff' : 'var(--text-secondary)',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {tier}
-                    </button>
-                  ))}
-                </div>
+                <span style={{ height: 14, width: 1, background: 'var(--border-color)' }}></span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Microbial Intelligence Atlas</span>
               </div>
 
               <div className={styles.topbarActions}>
                 {/* Search Form */}
                 <form onSubmit={handleSearchSubmit} style={{ position: 'relative' }}>
-                  <Search size={16} color="var(--text-secondary)" style={{ position: 'absolute', left: 12, top: 10 }} />
-                  <input 
-                    type="text" 
+                  <Search size={15} color="var(--text-secondary)" style={{ position: 'absolute', left: 12, top: 9 }} />
+                  <input
+                    type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search organism, VOC, sensor..." 
-                    style={{ 
-                      background: 'var(--bg-tertiary)', 
-                      border: '1px solid var(--border-color)', 
+                    placeholder="Search organisms, sensors..."
+                    style={{
+                      background: 'var(--bg-tertiary)',
+                      border: '1px solid var(--border-color)',
                       borderRadius: '20px',
-                      padding: '7px 16px 7px 36px',
+                      padding: '7px 16px 7px 34px',
                       color: 'var(--text-primary)',
                       outline: 'none',
-                      fontSize: '0.85rem',
-                      width: '240px'
-                    }} 
+                      fontSize: '0.82rem',
+                      width: '220px',
+                    }}
                   />
                 </form>
 
-                {/* View Mode Toggle Button */}
+                {/* View Mode Toggle */}
                 <button
                   onClick={() => handleModeChange(viewMode === 'Customer' ? 'Internal R&D' : 'Customer')}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 14px',
-                    borderRadius: '8px',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '6px 12px', borderRadius: '8px',
                     border: '1px solid var(--border-color)',
-                    background: viewMode === 'Internal R&D' ? 'rgba(139, 92, 246, 0.2)' : 'var(--bg-tertiary)',
-                    color: viewMode === 'Internal R&D' ? '#c084fc' : 'var(--text-primary)',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer'
+                    background: viewMode === 'Internal R&D' ? 'rgba(139,92,246,0.18)' : 'var(--bg-tertiary)',
+                    color: viewMode === 'Internal R&D' ? '#c084fc' : 'var(--text-secondary)',
+                    fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
                   }}
                 >
-                  {viewMode === 'Internal R&D' ? <Lock size={14} /> : <Eye size={14} />}
-                  <span>{viewMode} View</span>
+                  {viewMode === 'Internal R&D' ? <Lock size={13} /> : <Eye size={13} />}
+                  <span>{viewMode}</span>
                 </button>
 
-                {/* User Avatar */}
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                  AI
+                {/* Status dot */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }} />
+                  Live
                 </div>
               </div>
             </header>
