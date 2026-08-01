@@ -130,7 +130,7 @@ export default function SensorViewerPage() {
     try {
       let url: string;
       if (dataSource === 'ast') {
-        url = `/api/ast-data?dataset_batch=${astDataset}&organism=${astOrganism}&signal_mode=${astSignalMode}&show_controls=${astShowControls ? '1' : '0'}`;
+        url = `/api/ast-data?dataset_batch=${astDataset}&organism=${astOrganism}&signal_mode=${astSignalMode}&show_controls=${astShowControls ? '1' : '0'}&sensor=${astSelectedSensor}`;
       } else {
         const params = new URLSearchParams();
         params.set('dataset_batches', tsDataset);
@@ -155,7 +155,7 @@ export default function SensorViewerPage() {
     } finally {
       setLoading(false);
     }
-  }, [dataSource, astDataset, astOrganism, astSignalMode, astShowControls, tsDataset, tsOrganism, tsViewMode, tsFocusedSensor]);
+  }, [dataSource, astDataset, astOrganism, astSignalMode, astShowControls, astSelectedSensor, tsDataset, tsOrganism, tsViewMode, tsFocusedSensor]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

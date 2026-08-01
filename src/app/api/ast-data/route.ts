@@ -9,8 +9,9 @@ export async function GET(request: Request) {
   const organism = searchParams.get('organism') || '52';
   const signal_mode = searchParams.get('signal_mode') || 'normalized';
   const show_controls = searchParams.get('show_controls') || '1';
+  const sensor = searchParams.get('sensor') || 'LW60';
 
-  const url = `${RAILWAY_BASE}?dataset_batch=${dataset_batch}&organism=${organism}&signal_mode=${signal_mode}&show_controls=${show_controls}`;
+  const url = `${RAILWAY_BASE}?dataset_batch=${dataset_batch}&organism=${organism}&signal_mode=${signal_mode}&show_controls=${show_controls}&sensor=${sensor}`;
 
   try {
     const res = await fetch(url, { next: { revalidate: 3600 } }); // cache 1 hour
