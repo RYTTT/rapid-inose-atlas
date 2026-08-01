@@ -1,100 +1,168 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+"use client";
+
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { useState } from 'react';
 import "./globals.css";
 import styles from "./layout.module.css";
-import { Database, Home, Activity, Search, Settings, HelpCircle, FileText, FlaskConical, Beaker, Network } from "lucide-react";
-
-const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "RAPID-iNose™ Atlas",
-  description: "Microbial VOC & Sensor Intelligence Atlas",
-};
+import { 
+  Database, Home, Activity, Beaker, Network, FlaskConical, ShieldAlert, 
+  GitCompare, Cpu, Brain, Users, ShieldCheck, Search, FileText, Lock, Eye, CheckCircle2
+} from "lucide-react";
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+  const [dataTier, setDataTier] = useState<'Bronze' | 'Silver' | 'Gold'>('Silver');
+  const [viewMode, setViewMode] = useState<'Customer' | 'Internal R&D'>('Customer');
+
+  const navItems = [
+    { href: '/', label: 'Atlas Home', icon: Home },
+    { href: '/microbes', label: 'Microbe Explorer', icon: Activity },
+    { href: '/conditions', label: 'Condition Explorer', icon: Beaker },
+    { href: '/sensors', label: 'Sensor Viewer', icon: Network },
+    { href: '/metabolites', label: 'Metabolite Explorer', icon: FlaskConical },
+    { href: '/amr-biofilm', label: 'AMR & Biofilm Module', icon: ShieldAlert },
+    { href: '/compare', label: 'Compare Lab', icon: GitCompare },
+    { href: '/sensor-optimizer', label: 'Sensor Optimizer', icon: Cpu },
+    { href: '/ai-models', label: 'AI Model Center', icon: Brain },
+    { href: '/customer-solutions', label: 'Customer Solutions', icon: Users },
+    { href: '/governance', label: 'Data Governance & IP', icon: ShieldCheck },
+    { href: '/reports', label: 'Reports & Export', icon: FileText },
+  ];
+
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <head>
+        <title>RAPID-iNose™ Microbial VOC & Sensor Intelligence Atlas</title>
+        <meta name="description" content="Microbial VOC & Nanosensor Response Intelligence Atlas" />
+      </head>
+      <body>
         <div className={styles.layoutContainer}>
-          {/* Sidebar */}
+          {/* Left Sidebar */}
           <aside className={styles.sidebar}>
             <div className={styles.sidebarHeader}>
-              <Database size={24} color="var(--accent-primary)" />
-              <span>RAPID-iNose™ Atlas</span>
+              <div style={{ width: 32, height: 32, borderRadius: '8px', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Database size={20} color="#fff" />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '0.5px' }}>RAPID-iNose™</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Microbial Intelligence</span>
+              </div>
             </div>
             
             <nav className={styles.navLinks}>
-              <a href="/" className={`${styles.navItem} ${styles.navItemActive}`}>
-                <Home size={18} />
-                Atlas Home
-              </a>
-              <a href="/microbes" className={styles.navItem}>
-                <Activity size={18} />
-                Microbe Explorer
-              </a>
-              <a href="/conditions" className={styles.navItem}>
-                <Beaker size={18} />
-                Condition Explorer
-              </a>
-              <a href="/sensors" className={styles.navItem}>
-                <Network size={18} />
-                Sensor Viewer
-              </a>
-              <a href="/metabolites" className={styles.navItem}>
-                <FlaskConical size={18} />
-                Metabolite Explorer
-              </a>
-              <a href="/reports" className={styles.navItem}>
-                <FileText size={18} />
-                Reports & Export
-              </a>
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+                  >
+                    <Icon size={17} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
             </nav>
             
-            <div style={{ marginTop: 'auto', padding: '16px 12px' }}>
-              <a href="#" className={styles.navItem}>
-                <Settings size={18} />
-                Settings
-              </a>
-              <a href="#" className={styles.navItem}>
-                <HelpCircle size={18} />
-                Help & Support
-              </a>
+            {/* Sidebar Footer Status */}
+            <div style={{ marginTop: 'auto', padding: '16px', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Dataset Status</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-tertiary)', padding: '6px 10px', borderRadius: '6px', fontSize: '0.8rem' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Maturity Tier</span>
+                <span className={`badge ${dataTier === 'Gold' ? 'badge-amber' : dataTier === 'Silver' ? 'badge-blue' : 'badge-emerald'}`}>
+                  {dataTier}
+                </span>
+              </div>
             </div>
           </aside>
 
-          {/* Main Content Area */}
+          {/* Main Workspace */}
           <main className={styles.mainContent}>
-            {/* Topbar */}
+            {/* Topbar Header */}
             <header className={styles.topbar}>
-              <div className={styles.pageTitle}>Dashboard</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  RAPID-iNose Atlas Platform
+                </span>
+                <span style={{ height: 16, width: 1, background: 'var(--border-color)' }}></span>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {(['Bronze', 'Silver', 'Gold'] as const).map(tier => (
+                    <button
+                      key={tier}
+                      onClick={() => setDataTier(tier)}
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border-color)',
+                        background: dataTier === tier ? 'var(--accent-primary)' : 'transparent',
+                        color: dataTier === tier ? '#fff' : 'var(--text-secondary)',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {tier}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className={styles.topbarActions}>
+                {/* Search Input */}
                 <div style={{ position: 'relative' }}>
-                  <Search size={18} color="var(--text-secondary)" style={{ position: 'absolute', left: 10, top: 8 }} />
+                  <Search size={16} color="var(--text-secondary)" style={{ position: 'absolute', left: 12, top: 10 }} />
                   <input 
                     type="text" 
-                    placeholder="Search database..." 
+                    placeholder="Search organism, VOC, sensor..." 
                     style={{ 
                       background: 'var(--bg-tertiary)', 
                       border: '1px solid var(--border-color)', 
-                      borderRadius: '16px',
-                      padding: '8px 16px 8px 36px',
+                      borderRadius: '20px',
+                      padding: '7px 16px 7px 36px',
                       color: 'var(--text-primary)',
                       outline: 'none',
-                      fontSize: '0.9rem'
+                      fontSize: '0.85rem',
+                      width: '240px'
                     }} 
                   />
                 </div>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                  A
+
+                {/* View Mode Toggle Button */}
+                <button
+                  onClick={() => setViewMode(viewMode === 'Customer' ? 'Internal R&D' : 'Customer')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: viewMode === 'Internal R&D' ? 'rgba(139, 92, 246, 0.2)' : 'var(--bg-tertiary)',
+                    color: viewMode === 'Internal R&D' ? '#c084fc' : 'var(--text-primary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {viewMode === 'Internal R&D' ? <Lock size={14} /> : <Eye size={14} />}
+                  <span>{viewMode} View</span>
+                </button>
+
+                {/* User Avatar */}
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #10b981, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                  AI
                 </div>
               </div>
             </header>
             
-            {/* Page Content */}
+            {/* Viewport Content */}
             <div className={styles.pageContainer}>
               {children}
             </div>
