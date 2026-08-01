@@ -4,22 +4,73 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { MOCK_AMR_KINETICS, MOCK_BIOFILM_KINETICS } from '@/lib/mockData';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { ShieldAlert, Sparkles, ArrowRight } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 
-/* ─── Well IDs sorted high→low dose (matching MicroBiology repo) ── */
-const SORTED_WELLS = [
-  { id: 'A1', dose: '50 µg/mL',    status: 'healthy' },
-  { id: 'A2', dose: '32 µg/mL',    status: 'healthy' },
-  { id: 'A3', dose: '16 µg/mL',    status: 'healthy' },
-  { id: 'A4', dose: '8 µg/mL',     status: 'healthy' },
-  { id: 'B4', dose: '4 µg/mL',     status: 'subhealthy' },
-  { id: 'B3', dose: '2 µg/mL',     status: 'infected' },
-  { id: 'B2', dose: '1 µg/mL',     status: 'infected' },
-  { id: 'B1', dose: '0.5 µg/mL',   status: 'infected' },
-  { id: 'C1', dose: '0.25 µg/mL',  status: 'infected' },
-  { id: 'C2', dose: '0.125 µg/mL', status: 'infected' },
-  { id: 'C3', dose: '0.06 µg/mL',  status: 'infected' },
-  { id: 'C4', dose: '0 (ctrl)',     status: 'infected' },
+/* ─── Experiment configs ─── */
+interface Experiment {
+  id: string;
+  label: string;
+  organism: string;
+  antibiotic: string;
+  strain: string;
+  compositeImage: string;
+  chartsImage: string;
+  wellsImage: string;
+  layoutImage: string;
+  wells: { id: string; dose: string; status: 'healthy' | 'subhealthy' | 'infected' }[];
+}
+
+const EXPERIMENTS: Experiment[] = [
+  {
+    id: 'ecoli',
+    label: 'E. coli ATCC 25922',
+    organism: 'E. coli',
+    antibiotic: 'Ciprofloxacin',
+    strain: 'ATCC 25922',
+    compositeImage: '/microbiology/sorted_wells_colorbars.png',
+    chartsImage: '/microbiology/12-charts-v2.jpg',
+    wellsImage: '/microbiology/12-wells.jpeg',
+    layoutImage: '/microbiology/12-layout.png',
+    wells: [
+      { id: 'A1', dose: '50 µg/mL',    status: 'healthy' },
+      { id: 'A2', dose: '32 µg/mL',    status: 'healthy' },
+      { id: 'A3', dose: '16 µg/mL',    status: 'healthy' },
+      { id: 'A4', dose: '8 µg/mL',     status: 'healthy' },
+      { id: 'B4', dose: '4 µg/mL',     status: 'subhealthy' },
+      { id: 'B3', dose: '2 µg/mL',     status: 'infected' },
+      { id: 'B2', dose: '1 µg/mL',     status: 'infected' },
+      { id: 'B1', dose: '0.5 µg/mL',   status: 'infected' },
+      { id: 'C1', dose: '0.25 µg/mL',  status: 'infected' },
+      { id: 'C2', dose: '0.125 µg/mL', status: 'infected' },
+      { id: 'C3', dose: '0.06 µg/mL',  status: 'infected' },
+      { id: 'C4', dose: '0 (ctrl)',     status: 'infected' },
+    ],
+  },
+  {
+    id: 'sa252',
+    label: 'S. aureus 252',
+    organism: 'S. aureus',
+    antibiotic: 'Ciprofloxacin',
+    strain: '252',
+    compositeImage: '/microbiology/12-layoutSA.png',
+    chartsImage: '/microbiology/12-chart SA.png',
+    wellsImage: '/microbiology/12-wells SA.png',
+    layoutImage: '/microbiology/12-layoutSA.png',
+    wells: [
+      { id: 'A1', dose: '50 µg/mL',    status: 'healthy' },
+      { id: 'A2', dose: '32 µg/mL',    status: 'healthy' },
+      { id: 'A3', dose: '16 µg/mL',    status: 'healthy' },
+      { id: 'A4', dose: '8 µg/mL',     status: 'subhealthy' },
+      { id: 'B4', dose: '4 µg/mL',     status: 'infected' },
+      { id: 'B3', dose: '2 µg/mL',     status: 'infected' },
+      { id: 'B2', dose: '1 µg/mL',     status: 'infected' },
+      { id: 'B1', dose: '0.5 µg/mL',   status: 'infected' },
+      { id: 'C1', dose: '0.25 µg/mL',  status: 'infected' },
+      { id: 'C2', dose: '0.125 µg/mL', status: 'infected' },
+      { id: 'C3', dose: '0.06 µg/mL',  status: 'infected' },
+      { id: 'C4', dose: '0 (ctrl)',     status: 'infected' },
+    ],
+  },
 ];
 
 const STATUS_BORDER: Record<string, string> = {
@@ -30,10 +81,13 @@ const STATUS_BORDER: Record<string, string> = {
 
 export default function AmrBiofilmPage() {
   const [activeTab, setActiveTab] = useState<'Microplate' | 'AMR' | 'Biofilm'>('Microplate');
+  const [selectedExperiment, setSelectedExperiment] = useState<string>('ecoli');
   const [selectedPair, setSelectedPair] = useState('MRSA vs MSSA');
   const [abxConcentration, setAbxConcentration] = useState<'None' | 'Sub-MIC' | 'Therapeutic MIC' | 'High Dose'>('Therapeutic MIC');
   const [biofilmStage, setBiofilmStage] = useState<'Attachment' | 'Early Biofilm' | 'Mature Biofilm' | 'Disrupted'>('Mature Biofilm');
   const [selectedWell, setSelectedWell] = useState<string | null>(null);
+
+  const experiment = EXPERIMENTS.find(e => e.id === selectedExperiment) || EXPERIMENTS[0];
 
   // Dynamic AMR kinetics
   const abxFactor = abxConcentration === 'None' ? 1.0 : abxConcentration === 'Sub-MIC' ? 0.7 : abxConcentration === 'Therapeutic MIC' ? 0.1 : 0.02;
@@ -99,7 +153,7 @@ export default function AmrBiofilmPage() {
       {activeTab === 'Microplate' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
-          {/* ── Investor-facing narrative ── */}
+          {/* ── Narrative ── */}
           <section>
             <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
               Antibiotic Dose-Response — MIC Determination
@@ -109,24 +163,117 @@ export default function AmrBiofilmPage() {
             </p>
           </section>
 
-          {/* ── Legend ── */}
-          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}>
-              <span style={{ width: 14, height: 14, borderRadius: '3px', background: '#10b981', display: 'inline-block' }} />
-              <span style={{ color: '#34d399', fontWeight: 600 }}>No Growth (Effective Dose)</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}>
-              <span style={{ width: 14, height: 14, borderRadius: '3px', background: '#f59e0b', display: 'inline-block' }} />
-              <span style={{ color: '#fbbf24', fontWeight: 600 }}>MIC Boundary</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}>
-              <span style={{ width: 14, height: 14, borderRadius: '3px', background: '#ef4444', display: 'inline-block' }} />
-              <span style={{ color: '#f87171', fontWeight: 600 }}>Bacterial Growth (Sub-Inhibitory)</span>
-            </div>
+          {/* ── Experiment Selector ── */}
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Experiment:</span>
+            {EXPERIMENTS.map(exp => (
+              <button
+                key={exp.id}
+                onClick={() => { setSelectedExperiment(exp.id); setSelectedWell(null); }}
+                style={{
+                  padding: '8px 18px', borderRadius: '10px',
+                  border: `2px solid ${selectedExperiment === exp.id ? '#10b981' : 'rgba(255,255,255,0.06)'}`,
+                  background: selectedExperiment === exp.id ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.02)',
+                  color: selectedExperiment === exp.id ? '#34d399' : 'var(--text-secondary)',
+                  fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s',
+                }}
+              >
+                {exp.antibiotic} × <em>{exp.label}</em>
+              </button>
+            ))}
           </div>
 
-          {/* ── Main Result: Composite Visualization ── */}
+          {/* ── Legend ── */}
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+            {[
+              { color: '#10b981', label: 'No Growth (Effective Dose)' },
+              { color: '#f59e0b', label: 'MIC Boundary' },
+              { color: '#ef4444', label: 'Bacterial Growth (Sub-Inhibitory)' },
+            ].map(l => (
+              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}>
+                <span style={{ width: 14, height: 14, borderRadius: '3px', background: l.color, display: 'inline-block' }} />
+                <span style={{ color: l.color, fontWeight: 600 }}>{l.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* ── 3 Source Images: Charts, Wells, Layout ── */}
           <section>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px' }}>
+              {experiment.antibiotic} × <em>{experiment.label}</em> — Source Data
+            </h3>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              {/* Growth Curves */}
+              <div style={{
+                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '14px', overflow: 'hidden',
+              }}>
+                <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    12 Growth Curves
+                  </span>
+                </div>
+                <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3' }}>
+                  <Image
+                    src={experiment.chartsImage}
+                    alt={`${experiment.label} — 12 growth curves`}
+                    fill
+                    style={{ objectFit: 'contain', padding: '8px' }}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                </div>
+              </div>
+
+              {/* Well Images */}
+              <div style={{
+                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '14px', overflow: 'hidden',
+              }}>
+                <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    12 Microplate Wells
+                  </span>
+                </div>
+                <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3' }}>
+                  <Image
+                    src={experiment.wellsImage}
+                    alt={`${experiment.label} — 12 well images`}
+                    fill
+                    style={{ objectFit: 'contain', padding: '8px' }}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                </div>
+              </div>
+
+              {/* Plate Layout */}
+              <div style={{
+                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '14px', overflow: 'hidden',
+              }}>
+                <div style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Plate Layout
+                  </span>
+                </div>
+                <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3' }}>
+                  <Image
+                    src={experiment.layoutImage}
+                    alt={`${experiment.label} — plate layout`}
+                    fill
+                    style={{ objectFit: 'contain', padding: '8px' }}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ── Composite Result ── */}
+          <section>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px' }}>
+              Composite Visualization — Automated MIC Pipeline Output
+            </h3>
             <div style={{
               background: 'rgba(255,255,255,0.02)',
               border: '1px solid var(--border-color)',
@@ -135,8 +282,8 @@ export default function AmrBiofilmPage() {
             }}>
               <div style={{ position: 'relative', width: '100%', aspectRatio: '3/1' }}>
                 <Image
-                  src="/microbiology/sorted_wells_colorbars.png"
-                  alt="Sorted wells and growth curves with health transition color bars — high to low antibiotic dose"
+                  src={experiment.compositeImage}
+                  alt={`${experiment.label} — sorted wells with health transition color bars`}
                   fill
                   style={{ objectFit: 'contain', padding: '12px' }}
                   sizes="100vw"
@@ -145,56 +292,56 @@ export default function AmrBiofilmPage() {
               </div>
             </div>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '8px', textAlign: 'center', fontStyle: 'italic' }}>
-              Ciprofloxacin × <em>E. coli</em> ATCC 25922 — 12 wells sorted by antibiotic concentration with health transition color-bars
+              {experiment.antibiotic} × <em>{experiment.label}</em> — 12 wells sorted by antibiotic concentration with health transition color-bars
             </p>
           </section>
 
-          {/* ── Individual Well Gallery (clickable) ── */}
-          <section>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px' }}>
-              Individual Well Extractions — Click to Inspect
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
-              {SORTED_WELLS.map((w) => {
-                const isSelected = selectedWell === w.id;
-                const borderColor = STATUS_BORDER[w.status];
-                return (
-                  <div
-                    key={w.id}
-                    onClick={() => setSelectedWell(isSelected ? null : w.id)}
-                    style={{
-                      background: isSelected ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.02)',
-                      border: `2px solid ${isSelected ? '#3b82f6' : borderColor + '66'}`,
-                      borderRadius: '12px',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      boxShadow: isSelected ? `0 0 16px ${borderColor}40` : 'none',
-                    }}
-                  >
-                    {/* Well image */}
-                    <div style={{ position: 'relative', width: '100%', aspectRatio: '1' }}>
-                      <Image
-                        src={`/microbiology/carved_wells/well_${w.id}.png`}
-                        alt={`Well ${w.id}`}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                        sizes="(max-width: 768px) 50vw, 16vw"
-                      />
+          {/* ── Individual Well Gallery (E.coli only — has carved wells) ── */}
+          {experiment.id === 'ecoli' && (
+            <section>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px' }}>
+                Individual Well Extractions — Click to Inspect
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+                {experiment.wells.map((w) => {
+                  const isSelected = selectedWell === w.id;
+                  const borderColor = STATUS_BORDER[w.status];
+                  return (
+                    <div
+                      key={w.id}
+                      onClick={() => setSelectedWell(isSelected ? null : w.id)}
+                      style={{
+                        background: isSelected ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.02)',
+                        border: `2px solid ${isSelected ? '#3b82f6' : borderColor + '66'}`,
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        boxShadow: isSelected ? `0 0 16px ${borderColor}40` : 'none',
+                      }}
+                    >
+                      <div style={{ position: 'relative', width: '100%', aspectRatio: '1' }}>
+                        <Image
+                          src={`/microbiology/carved_wells/well_${w.id}.png`}
+                          alt={`Well ${w.id}`}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                          sizes="(max-width: 768px) 50vw, 16vw"
+                        />
+                      </div>
+                      <div style={{ padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: borderColor }}>{w.id}</span>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{w.dose}</span>
+                      </div>
                     </div>
-                    {/* Label */}
-                    <div style={{ padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: borderColor }}>{w.id}</span>
-                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{w.dose}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
-          {/* ── Selected Well Detail (well + chart side by side) ── */}
-          {selectedWell && (
+          {/* ── Selected Well Detail ── */}
+          {selectedWell && experiment.id === 'ecoli' && (
             <section style={{
               background: 'rgba(255,255,255,0.02)',
               border: '1px solid var(--border-color)',
@@ -205,7 +352,6 @@ export default function AmrBiofilmPage() {
                 Well {selectedWell} — Detail View
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                {/* Carved well image */}
                 <div style={{ position: 'relative', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                   <Image
                     src={`/microbiology/carved_wells/well_${selectedWell}.png`}
@@ -215,7 +361,6 @@ export default function AmrBiofilmPage() {
                     sizes="50vw"
                   />
                 </div>
-                {/* Corresponding growth curve chart */}
                 <div style={{ position: 'relative', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                   <Image
                     src={`/microbiology/split_charts/chart_${selectedWell}.png`}
@@ -229,42 +374,44 @@ export default function AmrBiofilmPage() {
               <div style={{ marginTop: '12px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 <strong style={{ color: 'var(--text-primary)' }}>Well {selectedWell}</strong>
                 {' · '}
-                {SORTED_WELLS.find(w => w.id === selectedWell)?.dose}
+                {experiment.wells.find(w => w.id === selectedWell)?.dose}
                 {' · Status: '}
-                <span style={{ color: STATUS_BORDER[SORTED_WELLS.find(w => w.id === selectedWell)?.status || 'infected'], fontWeight: 700 }}>
-                  {SORTED_WELLS.find(w => w.id === selectedWell)?.status === 'healthy' ? 'Healthy (No Growth)' :
-                   SORTED_WELLS.find(w => w.id === selectedWell)?.status === 'subhealthy' ? 'Sub-Healthy (MIC Boundary)' :
+                <span style={{ color: STATUS_BORDER[experiment.wells.find(w => w.id === selectedWell)?.status || 'infected'], fontWeight: 700 }}>
+                  {experiment.wells.find(w => w.id === selectedWell)?.status === 'healthy' ? 'Healthy (No Growth)' :
+                   experiment.wells.find(w => w.id === selectedWell)?.status === 'subhealthy' ? 'Sub-Healthy (MIC Boundary)' :
                    'Infected (Bacterial Growth)'}
                 </span>
               </div>
             </section>
           )}
 
-          {/* ── Reference Comparison ── */}
-          <section>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
-              Reference Benchmark (Claude AI Result)
-            </h3>
-            <div style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '16px',
-              overflow: 'hidden',
-            }}>
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '2.5/1' }}>
-                <Image
-                  src="/microbiology/claude_result.png"
-                  alt="Claude AI reference benchmark visualization"
-                  fill
-                  style={{ objectFit: 'contain', padding: '12px' }}
-                  sizes="100vw"
-                />
+          {/* ── Reference Benchmark ── */}
+          {experiment.id === 'ecoli' && (
+            <section>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
+                Reference Benchmark
+              </h3>
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '16px',
+                overflow: 'hidden',
+              }}>
+                <div style={{ position: 'relative', width: '100%', aspectRatio: '2.5/1' }}>
+                  <Image
+                    src="/microbiology/claude_result.png"
+                    alt="Reference benchmark visualization"
+                    fill
+                    style={{ objectFit: 'contain', padding: '12px' }}
+                    sizes="100vw"
+                  />
+                </div>
               </div>
-            </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px', textAlign: 'center', fontStyle: 'italic' }}>
-              Side-by-side comparison — our automated pipeline output vs. Claude AI-generated reference
-            </p>
-          </section>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px', textAlign: 'center', fontStyle: 'italic' }}>
+                Side-by-side comparison — our automated pipeline output vs. reference benchmark
+              </p>
+            </section>
+          )}
 
         </div>
       )}
