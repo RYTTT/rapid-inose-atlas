@@ -145,6 +145,69 @@ export const MOCK_ORGANISMS_EXPANDED: OrganismDetail[] = [
   }
 ];
 
+// 12-Well Microplate Dose-Response Dataset (from minyaozhu/MicroBiology project)
+export interface MicroplateWellDose {
+  rank: number;
+  wellId: string;
+  doseStr: string;
+  doseVal: number;
+  status: 'Healthy' | 'Sub-Healthy' | 'Infection';
+  colorHex: string;
+  micBoundary: boolean;
+  growthCurve: Array<{ time: number; signal: number }>;
+}
+
+export const MOCK_MICROPLATE_DOSE_DATA: MicroplateWellDose[] = [
+  {
+    rank: 1, wellId: 'A1', doseStr: '50 µg/mL (No Bacteria)', doseVal: 50.0, status: 'Healthy', colorHex: '#10B981', micBoundary: false,
+    growthCurve: [ { time: 0, signal: 0.02 }, { time: 10, signal: 0.02 }, { time: 20, signal: 0.02 }, { time: 30, signal: 0.03 }, { time: 45, signal: 0.03 }, { time: 60, signal: 0.03 } ]
+  },
+  {
+    rank: 2, wellId: 'A2', doseStr: '25 µg/mL', doseVal: 25.0, status: 'Healthy', colorHex: '#10B981', micBoundary: false,
+    growthCurve: [ { time: 0, signal: 0.02 }, { time: 10, signal: 0.03 }, { time: 20, signal: 0.04 }, { time: 30, signal: 0.05 }, { time: 45, signal: 0.06 }, { time: 60, signal: 0.07 } ]
+  },
+  {
+    rank: 3, wellId: 'A3', doseStr: '12.5 µg/mL', doseVal: 12.5, status: 'Healthy', colorHex: '#10B981', micBoundary: false,
+    growthCurve: [ { time: 0, signal: 0.02 }, { time: 10, signal: 0.04 }, { time: 20, signal: 0.06 }, { time: 30, signal: 0.09 }, { time: 45, signal: 0.12 }, { time: 60, signal: 0.15 } ]
+  },
+  {
+    rank: 4, wellId: 'A4', doseStr: '6.25 µg/mL', doseVal: 6.25, status: 'Healthy', colorHex: '#10B981', micBoundary: false,
+    growthCurve: [ { time: 0, signal: 0.03 }, { time: 10, signal: 0.05 }, { time: 20, signal: 0.10 }, { time: 30, signal: 0.18 }, { time: 45, signal: 0.25 }, { time: 60, signal: 0.32 } ]
+  },
+  {
+    rank: 5, wellId: 'B4', doseStr: '3.13 µg/mL (MIC Threshold)', doseVal: 3.13, status: 'Sub-Healthy', colorHex: '#F59E0B', micBoundary: true,
+    growthCurve: [ { time: 0, signal: 0.04 }, { time: 10, signal: 0.12 }, { time: 20, signal: 0.35 }, { time: 30, signal: 0.85 }, { time: 45, signal: 1.45 }, { time: 60, signal: 1.90 } ]
+  },
+  {
+    rank: 6, wellId: 'B3', doseStr: '1.56 µg/mL', doseVal: 1.56, status: 'Infection', colorHex: '#EF4444', micBoundary: false,
+    growthCurve: [ { time: 0, signal: 0.05 }, { time: 10, signal: 0.20 }, { time: 20, signal: 0.65 }, { time: 30, signal: 1.55 }, { time: 45, signal: 2.80 }, { time: 60, signal: 3.40 } ]
+  },
+  {
+    rank: 7, wellId: 'B2', doseStr: '0.78 µg/mL', doseVal: 0.78, status: 'Infection', colorHex: '#EF4444', micBoundary: false,
+    growthCurve: [ { time: 0, signal: 0.05 }, { time: 10, signal: 0.22 }, { time: 20, signal: 0.72 }, { time: 30, signal: 1.70 }, { time: 45, signal: 3.10 }, { time: 60, signal: 3.75 } ]
+  },
+  {
+    rank: 8, wellId: 'B1', doseStr: '0.39 µg/mL', doseVal: 0.39, status: 'Infection', colorHex: '#EF4444', micBoundary: false,
+    growthCurve: [ { time: 0, signal: 0.06 }, { time: 10, signal: 0.25 }, { time: 20, signal: 0.80 }, { time: 30, signal: 1.85 }, { time: 45, signal: 3.35 }, { time: 60, signal: 3.95 } ]
+  },
+  {
+    rank: 9, wellId: 'C1', doseStr: '0.195 µg/mL', doseVal: 0.195, status: 'Infection', colorHex: '#EF4444', micBoundary: false,
+    growthCurve: [ { time: 0, signal: 0.06 }, { time: 10, signal: 0.28 }, { time: 20, signal: 0.85 }, { time: 30, signal: 1.95 }, { time: 45, signal: 3.50 }, { time: 60, signal: 4.10 } ]
+  },
+  {
+    rank: 10, wellId: 'C2', doseStr: '0.098 µg/mL', doseVal: 0.098, status: 'Infection', colorHex: '#EF4444', micBoundary: false,
+    growthCurve: [ { time: 0, signal: 0.06 }, { time: 10, signal: 0.30 }, { time: 20, signal: 0.90 }, { time: 30, signal: 2.05 }, { time: 45, signal: 3.65 }, { time: 60, signal: 4.20 } ]
+  },
+  {
+    rank: 11, wellId: 'C3', doseStr: '0.098 µg/mL (Replicate)', doseVal: 0.098, status: 'Infection', colorHex: '#EF4444', micBoundary: false,
+    growthCurve: [ { time: 0, signal: 0.06 }, { time: 10, signal: 0.31 }, { time: 20, signal: 0.92 }, { time: 30, signal: 2.10 }, { time: 45, signal: 3.70 }, { time: 60, signal: 4.25 } ]
+  },
+  {
+    rank: 12, wellId: 'C4', doseStr: '0.0 µg/mL (No Antibiotic)', doseVal: 0.0, status: 'Infection', colorHex: '#EF4444', micBoundary: false,
+    growthCurve: [ { time: 0, signal: 0.07 }, { time: 10, signal: 0.35 }, { time: 20, signal: 1.05 }, { time: 30, signal: 2.30 }, { time: 45, signal: 3.90 }, { time: 60, signal: 4.45 } ]
+  }
+];
+
 // PCA & UMAP Projection coordinates for Compare Lab
 export const MOCK_PCA_DATA = [
   { name: 'P. aeruginosa (ATCC)', x: -4.2, y: 3.5, group: 'P. aeruginosa', source: 'ATCC', gram: 'Gram-negative' },
