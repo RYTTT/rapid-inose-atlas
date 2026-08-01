@@ -1,32 +1,35 @@
 "use client";
 
 import { useState } from 'react';
-import { Beaker, Thermometer, Wind, Box, ShieldCheck, Activity, Sparkles } from 'lucide-react';
+import { Beaker, Thermometer, Wind, Box, ShieldCheck, Activity, Sparkles, CheckCircle2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 export default function ConditionsPage() {
   const [selectedMedia, setSelectedMedia] = useState('Tryptic Soy Broth (TSB)');
+  const [activeTemp, setActiveTemp] = useState<number>(37);
+  const [activeAtmosphere, setActiveAtmosphere] = useState<'Aerobic' | 'Anaerobic' | 'CO2' | 'Microaerophilic'>('Aerobic');
 
   const mediaList = [
-    { name: 'Tryptic Soy Broth (TSB)', type: 'Standard Growth Media', vendor: 'BD Difco', ph: 7.3, bgVoc: 'Low', target: 'General Bacteria' },
-    { name: 'LB Broth', type: 'Standard Media', vendor: 'Sigma', ph: 7.0, bgVoc: 'Very Low', target: 'E. coli & Reference' },
-    { name: 'BD Blood Culture Media', type: 'Clinical Sepsis Bottle', vendor: 'Becton Dickinson', ph: 7.4, bgVoc: 'Moderate', target: 'Bloodstream Pathogens' },
-    { name: 'Custom Wound-Mimic Media', type: 'Clinical Simulated Exudate', vendor: 'In-House Protocol', ph: 6.8, bgVoc: 'High', target: 'Wound Biofilm' },
-    { name: 'Sabouraud Dextrose Broth', type: 'Fungal Select Media', vendor: 'Thermo Scientific', ph: 5.6, bgVoc: 'Low', target: 'Candida & Fungi' },
-    { name: 'MacConkey Broth', type: 'Gram-Negative Selective', vendor: 'BD', ph: 7.1, bgVoc: 'Moderate', target: 'Enterobacteriaceae' },
-    { name: 'Anaerobic Blood Agar', type: 'Anaerobic Media', vendor: 'Anaerobe Systems', ph: 7.2, bgVoc: 'Moderate', target: 'Anaerobic Clostridium' }
+    { name: 'Tryptic Soy Broth (TSB)', type: 'Standard Growth Media', vendor: 'BD Difco', ph: 7.3, bgVoc: 'Low', target: 'General Bacteria', notes: 'Standard reference culture medium for ATCC quality control.' },
+    { name: 'LB Broth', type: 'Standard Media', vendor: 'Sigma', ph: 7.0, bgVoc: 'Very Low', target: 'E. coli & Reference', notes: 'Minimal background VOC interference; ideal for baseline calibration.' },
+    { name: 'BD Blood Culture Media', type: 'Clinical Sepsis Bottle', vendor: 'Becton Dickinson', ph: 7.4, bgVoc: 'Moderate', target: 'Bloodstream Pathogens', notes: 'Contains blood culture media background components requiring background subtraction.' },
+    { name: 'Custom Wound-Mimic Media', type: 'Clinical Simulated Exudate', vendor: 'In-House Protocol', ph: 6.8, bgVoc: 'High', target: 'Wound Biofilm', notes: 'Simulates human chronic wound exudate with high protein background.' },
+    { name: 'Sabouraud Dextrose Broth', type: 'Fungal Select Media', vendor: 'Thermo Scientific', ph: 5.6, bgVoc: 'Low', target: 'Candida & Fungi', notes: 'Low pH selective media optimized for yeast and mold VOC signatures.' },
+    { name: 'MacConkey Broth', type: 'Gram-Negative Selective', vendor: 'BD', ph: 7.1, bgVoc: 'Moderate', target: 'Enterobacteriaceae', notes: 'Bile salts and crystal violet selective medium for Gram-negative enteric bacilli.' },
+    { name: 'Anaerobic Blood Agar', type: 'Anaerobic Media', vendor: 'Anaerobe Systems', ph: 7.2, bgVoc: 'Moderate', target: 'Anaerobic Clostridium', notes: 'Pre-reduced media for strict anaerobic bacterial headspace kinetics.' }
   ];
 
-  // Temperature Shift Kinetics (25°C vs 37°C vs 40°C)
-  const tempShiftData = [
-    { time: 0, temp25: 0, temp37: 0, temp40: 0 },
-    { time: 10, temp25: 0.05, temp37: 0.15, temp40: 0.22 },
-    { time: 20, temp25: 0.15, temp37: 0.65, temp40: 0.95 },
-    { time: 30, temp25: 0.35, temp37: 1.80, temp40: 2.10 },
-    { time: 40, temp25: 0.70, temp37: 3.10, temp40: 3.40 },
-    { time: 50, temp25: 1.20, temp37: 4.00, temp40: 4.10 },
-    { time: 60, temp25: 1.80, temp37: 4.30, temp40: 4.35 }
-  ];
+  const currentMediaInfo = mediaList.find(m => m.name === selectedMedia) || mediaList[0];
+
+  // Dynamic Temperature Shift Kinetics based on selected temperature
+  const tempShiftData = [0, 10, 20, 30, 40, 50, 60].map(t => {
+    const mult = activeTemp === 40 ? 1.25 : activeTemp === 37 ? 1.0 : 0.45;
+    return {
+      time: t,
+      signal: +(0.15 * Math.exp(t / 20) * mult).toFixed(2),
+      background: +(0.02 * (t / 10)).toFixed(2)
+    };
+  });
 
   // TTD Impact by Media
   const ttdMediaData = [
@@ -87,6 +90,18 @@ export default function ConditionsPage() {
               );
             })}
           </div>
+
+          {/* Selected Media Detail Inspector */}
+          <div style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-highlight)', padding: '16px', borderRadius: '8px', marginTop: '8px', fontSize: '0.85rem' }}>
+            <div style={{ fontWeight: 700, color: 'var(--accent-primary)', fontSize: '0.95rem' }}>
+              Selected Media Specs: {currentMediaInfo.name}
+            </div>
+            <div style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>{currentMediaInfo.notes}</div>
+            <div style={{ display: 'flex', gap: '16px', marginTop: '10px', fontSize: '0.8rem' }}>
+              <div><span style={{ color: 'var(--text-muted)' }}>Target Pathogens:</span> <strong>{currentMediaInfo.target}</strong></div>
+              <div><span style={{ color: 'var(--text-muted)' }}>Background VOC Subtraction:</span> <strong>Active ({currentMediaInfo.bgVoc})</strong></div>
+            </div>
+          </div>
         </div>
 
         {/* Right Column: Environmental Parameter Controls */}
@@ -94,9 +109,33 @@ export default function ConditionsPage() {
           
           {/* Temperature Matrix Card */}
           <div className="glass-panel" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <Thermometer size={20} color="var(--accent-warning)" />
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Temperature Matrix (25°C / 37°C / 40°C)</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Thermometer size={20} color="var(--accent-warning)" />
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Temperature Matrix</h3>
+              </div>
+
+              {/* Temp Selector */}
+              <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-tertiary)', padding: '3px', borderRadius: '6px' }}>
+                {[25, 37, 40].map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setActiveTemp(t)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      border: 'none',
+                      background: activeTemp === t ? 'var(--accent-warning)' : 'transparent',
+                      color: activeTemp === t ? '#fff' : 'var(--text-secondary)',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {t}°C
+                  </button>
+                ))}
+              </div>
             </div>
             
             <div style={{ height: '160px', width: '100%' }}>
@@ -106,9 +145,8 @@ export default function ConditionsPage() {
                   <XAxis dataKey="time" stroke="var(--text-secondary)" tick={{ fontSize: 10 }} />
                   <YAxis stroke="var(--text-secondary)" tick={{ fontSize: 10 }} />
                   <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)' }} />
-                  <Line type="monotone" name="37°C Clinical Standard" dataKey="temp37" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                  <Line type="monotone" name="40°C DoD Fever / Austere" dataKey="temp40" stroke="#ef4444" strokeWidth={2} dot={false} />
-                  <Line type="monotone" name="25°C Ambient Storage" dataKey="temp25" stroke="#10b981" strokeWidth={2} dot={false} />
+                  <Line type="monotone" name={`Pathogen Kinetic Signal (${activeTemp}°C)`} dataKey="signal" stroke="#3b82f6" strokeWidth={2.5} dot={false} />
+                  <Line type="monotone" name="Media Background Baseline" dataKey="background" stroke="#94a3b8" strokeDasharray="4 4" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -121,22 +159,24 @@ export default function ConditionsPage() {
               <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Atmosphere & Headspace Vessels</h3>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', fontSize: '0.8rem' }}>
-              <div style={{ background: 'var(--bg-tertiary)', padding: '10px', borderRadius: '6px' }}>
-                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Aerobic Atmosphere</div>
-                <div style={{ color: 'var(--text-muted)' }}>Standard 21% O2</div>
-              </div>
-              <div style={{ background: 'var(--bg-tertiary)', padding: '10px', borderRadius: '6px' }}>
-                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Anaerobic Chamber</div>
-                <div style={{ color: 'var(--text-muted)' }}>N2/CO2/H2 85:10:5</div>
-              </div>
-              <div style={{ background: 'var(--bg-tertiary)', padding: '10px', borderRadius: '6px' }}>
-                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>NPWT Tubing Model</div>
-                <div style={{ color: 'var(--text-muted)' }}>Continuous flow headspace</div>
-              </div>
-              <div style={{ background: 'var(--bg-tertiary)', padding: '10px', borderRadius: '6px' }}>
-                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>BD Blood Culture Bottle</div>
-                <div style={{ color: 'var(--text-muted)' }}>Sealed septum bottle</div>
-              </div>
+              {(['Aerobic', 'Anaerobic', 'CO2', 'Microaerophilic'] as const).map(atm => (
+                <div 
+                  key={atm}
+                  onClick={() => setActiveAtmosphere(atm)}
+                  style={{
+                    background: activeAtmosphere === atm ? 'rgba(20, 184, 166, 0.2)' : 'var(--bg-tertiary)',
+                    border: '1px solid',
+                    borderColor: activeAtmosphere === atm ? 'var(--accent-teal)' : 'var(--border-color)',
+                    padding: '10px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: activeAtmosphere === atm ? 700 : 400
+                  }}
+                >
+                  <div style={{ color: activeAtmosphere === atm ? '#2dd4bf' : 'var(--text-primary)' }}>{atm}</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '2px' }}>Select to test kinetics</div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -149,7 +189,7 @@ export default function ConditionsPage() {
         <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '12px' }}>
           Time-to-Detection (TTD) Shift across Media Types
         </h3>
-        <div style={{ height: '220px', width: '100%' }}>
+        <div style={{ height: '200px', width: '100%' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={ttdMediaData}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />

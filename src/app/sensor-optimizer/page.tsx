@@ -1,13 +1,21 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { MOCK_SENSOR_COMBOS } from '@/lib/mockData';
-import { Cpu, Lock, Eye, Sparkles, Activity, ShieldCheck, CheckCircle2, Award } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { Cpu, Lock, Eye, Sparkles, Activity, ShieldCheck, CheckCircle2, Award, Sliders } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 export default function SensorOptimizerPage() {
   const [targetApp, setTargetApp] = useState('Wound Infection');
   const [internalViewMode, setInternalViewMode] = useState(false);
+  const [selectedSensorCount, setSelectedSensorCount] = useState<number>(6);
+
+  // Dynamic Array Subset Accuracy Simulator
+  const simulatedPerformance = useMemo(() => {
+    const acc = selectedSensorCount === 3 ? 88.4 : selectedSensorCount === 6 ? 93.4 : selectedSensorCount === 8 ? 98.2 : selectedSensorCount === 12 ? 98.9 : 99.6;
+    const ttd = selectedSensorCount === 3 ? 42 : selectedSensorCount === 6 ? 32 : selectedSensorCount === 8 ? 22 : selectedSensorCount === 12 ? 18 : 12;
+    return { acc, ttd };
+  }, [selectedSensorCount]);
 
   // Customer-facing vs Internal Sensor Data Schema
   const sensorElements = [
@@ -97,7 +105,7 @@ export default function SensorOptimizerPage() {
           </p>
         </div>
 
-        {/* Dual Mode View Toggle (PDF Page 8 Requirement) */}
+        {/* Dual Mode View Toggle */}
         <button
           onClick={() => setInternalViewMode(!internalViewMode)}
           style={{
@@ -119,32 +127,41 @@ export default function SensorOptimizerPage() {
         </button>
       </div>
 
-      {/* Target Application Subset Selection */}
-      <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Target Application Domain:</span>
-          {['Wound Infection', 'Gram Triage', 'Species ID', 'AMR Phenotype', 'Blood Culture', 'Food Safety'].map(app => (
+      {/* Array Subset Simulator Bar */}
+      <div className="glass-panel" style={{ padding: '18px 24px', display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Sliders size={20} color="var(--accent-primary)" />
+          <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>Array Size Subset Simulator:</span>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {[3, 6, 8, 12, 40].map(cnt => (
             <button
-              key={app}
-              onClick={() => setTargetApp(app)}
+              key={cnt}
+              onClick={() => setSelectedSensorCount(cnt)}
               style={{
                 padding: '6px 14px',
                 borderRadius: '6px',
                 border: '1px solid var(--border-color)',
-                background: targetApp === app ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                color: targetApp === app ? '#fff' : 'var(--text-secondary)',
-                fontSize: '0.8rem',
-                fontWeight: 600,
+                background: selectedSensorCount === cnt ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                color: selectedSensorCount === cnt ? '#fff' : 'var(--text-secondary)',
+                fontSize: '0.82rem',
+                fontWeight: 700,
                 cursor: 'pointer'
               }}
             >
-              {app}
+              {cnt} Sensors
             </button>
           ))}
         </div>
+
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '20px', fontSize: '0.88rem' }}>
+          <div><span style={{ color: 'var(--text-muted)' }}>Simulated Accuracy:</span> <strong style={{ color: 'var(--accent-secondary)' }}>{simulatedPerformance.acc}%</strong></div>
+          <div><span style={{ color: 'var(--text-muted)' }}>Avg TTD:</span> <strong style={{ color: 'var(--accent-primary)' }}>{simulatedPerformance.ttd} min</strong></div>
+        </div>
       </div>
 
-      {/* Sensor Array Elements Table (Customer vs Internal View) */}
+      {/* Sensor Array Elements Table */}
       <div className="glass-panel" style={{ padding: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
@@ -199,51 +216,6 @@ export default function SensorOptimizerPage() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Feature Importance & Combination Matrix */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        
-        {/* Feature Importance Bar */}
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '12px' }}>
-            Sensor Feature Importance for {targetApp}
-          </h3>
-          <div style={{ height: '240px', width: '100%' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={featureImportance} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" horizontal={false} />
-                <XAxis type="number" stroke="var(--text-secondary)" domain={[0, 100]} />
-                <YAxis type="category" dataKey="sensor" stroke="var(--text-secondary)" width={150} tick={{ fontSize: 10 }} />
-                <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)' }} />
-                <Bar dataKey="importance" fill="var(--accent-teal)" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* 40-Sensor Screening Matrix Comparison */}
-        <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
-            Array Combination Screening Matrix
-          </h3>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem', marginTop: '6px' }}>
-            {MOCK_SENSOR_COMBOS.map(combo => (
-              <div key={combo.id} style={{ background: 'var(--bg-tertiary)', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{combo.name}</div>
-                  <div style={{ color: 'var(--text-muted)', marginTop: '2px' }}>Target: {combo.targetApp} | {combo.sensors} Sensors</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 800, color: 'var(--accent-secondary)', fontSize: '0.95rem' }}>{combo.accuracy}% Acc</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Avg TTD: {combo.ttdAvgMin} min</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
       </div>
 
     </div>

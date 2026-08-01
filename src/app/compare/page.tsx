@@ -2,12 +2,27 @@
 
 import { useState } from 'react';
 import { MOCK_PCA_DATA } from '@/lib/mockData';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, LineChart, Line, Legend } from 'recharts';
-import { GitCompare, Sparkles, Activity, Layers, Cpu, ArrowLeftRight } from 'lucide-react';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, LineChart, Line, Legend, BarChart, Bar } from 'recharts';
+import { GitCompare, Sparkles, Activity, Layers, Cpu, ArrowLeftRight, CheckSquare, Square } from 'lucide-react';
 
 export default function CompareLabPage() {
   const [selectedPreset, setSelectedPreset] = useState('1. Same Pathogen, Different Source');
   const [activeView, setActiveView] = useState<'PCA' | 'Curves' | 'Heatmap' | 'Waterfall'>('PCA');
+  
+  // Interactive checklist toggles for overlay curves
+  const [selectedRuns, setSelectedRuns] = useState<Record<string, boolean>>({
+    'P. aeruginosa (ATCC 27853)': true,
+    'P. aeruginosa (Mayo Clinic)': true,
+    'P. aeruginosa (HSS NPWT Effluent)': true,
+    'S. aureus (MSSA)': true,
+    'S. aureus (MRSA)': false,
+    'K. pneumoniae (ESBL+)': false,
+    'A. baumannii (CRAB)': false
+  });
+
+  const toggleRun = (name: string) => {
+    setSelectedRuns(prev => ({ ...prev, [name]: !prev[name] }));
+  };
 
   const presets = [
     '1. Same Pathogen, Different Source',
@@ -25,16 +40,35 @@ export default function CompareLabPage() {
     'Control': '#64748b'
   };
 
+  // Overlay curves data generator based on active checklist
+  const overlayKineticData = [
+    { time: 0, 'P. aeruginosa (ATCC 27853)': 0, 'P. aeruginosa (Mayo Clinic)': 0, 'P. aeruginosa (HSS NPWT Effluent)': 0, 'S. aureus (MSSA)': 0, 'S. aureus (MRSA)': 0, 'K. pneumoniae (ESBL+)': 0, 'A. baumannii (CRAB)': 0 },
+    { time: 15, 'P. aeruginosa (ATCC 27853)': 0.10, 'P. aeruginosa (Mayo Clinic)': 0.15, 'P. aeruginosa (HSS NPWT Effluent)': 0.25, 'S. aureus (MSSA)': 0.08, 'S. aureus (MRSA)': 0.12, 'K. pneumoniae (ESBL+)': 0.05, 'A. baumannii (CRAB)': 0.04 },
+    { time: 30, 'P. aeruginosa (ATCC 27853)': 1.20, 'P. aeruginosa (Mayo Clinic)': 1.45, 'P. aeruginosa (HSS NPWT Effluent)': 1.90, 'S. aureus (MSSA)': 0.65, 'S. aureus (MRSA)': 0.85, 'K. pneumoniae (ESBL+)': 0.45, 'A. baumannii (CRAB)': 0.35 },
+    { time: 45, 'P. aeruginosa (ATCC 27853)': 2.80, 'P. aeruginosa (Mayo Clinic)': 3.10, 'P. aeruginosa (HSS NPWT Effluent)': 3.65, 'S. aureus (MSSA)': 1.80, 'S. aureus (MRSA)': 2.10, 'K. pneumoniae (ESBL+)': 1.40, 'A. baumannii (CRAB)': 1.10 },
+    { time: 60, 'P. aeruginosa (ATCC 27853)': 4.00, 'P. aeruginosa (Mayo Clinic)': 4.20, 'P. aeruginosa (HSS NPWT Effluent)': 4.40, 'S. aureus (MSSA)': 2.90, 'S. aureus (MRSA)': 3.40, 'K. pneumoniae (ESBL+)': 2.50, 'A. baumannii (CRAB)': 2.10 }
+  ];
+
   // Waterfall TTD comparison data
   const ttdWaterfallData = [
-    { name: 'P. aeruginosa (ATCC)', TTD: 28, group: 'P. aeruginosa' },
-    { name: 'P. aeruginosa (Clinical Mayo)', TTD: 26, group: 'P. aeruginosa' },
-    { name: 'P. aeruginosa (NPWT Effluent)', TTD: 22, group: 'P. aeruginosa' },
-    { name: 'S. aureus MSSA', TTD: 32, group: 'S. aureus' },
-    { name: 'S. aureus MRSA', TTD: 30, group: 'S. aureus' },
-    { name: 'K. pneumoniae ESBL+', TTD: 35, group: 'K. pneumoniae' },
-    { name: 'A. baumannii CRAB', TTD: 40, group: 'A. baumannii' }
+    { name: 'P. aeruginosa (ATCC)', TTD: 28 },
+    { name: 'P. aeruginosa (Clinical Mayo)', TTD: 26 },
+    { name: 'P. aeruginosa (NPWT Effluent)', TTD: 22 },
+    { name: 'S. aureus MSSA', TTD: 32 },
+    { name: 'S. aureus MRSA', TTD: 30 },
+    { name: 'K. pneumoniae ESBL+', TTD: 35 },
+    { name: 'A. baumannii CRAB', TTD: 40 }
   ];
+
+  const OVERLAY_COLORS: Record<string, string> = {
+    'P. aeruginosa (ATCC 27853)': '#3b82f6',
+    'P. aeruginosa (Mayo Clinic)': '#10b981',
+    'P. aeruginosa (HSS NPWT Effluent)': '#f59e0b',
+    'S. aureus (MSSA)': '#8b5cf6',
+    'S. aureus (MRSA)': '#ef4444',
+    'K. pneumoniae (ESBL+)': '#14b8a6',
+    'A. baumannii (CRAB)': '#ec4899'
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -47,7 +81,7 @@ export default function CompareLabPage() {
             <span className="badge badge-purple">Multi-Dimensional Comparison Sandbox</span>
           </div>
           <p style={{ color: 'var(--text-secondary)', marginTop: '4px', fontSize: '0.88rem' }}>
-            Cross-compare pathogen signatures across sources, growth media, temperatures, and sensor arrays.
+            Cross-compare pathogen signatures across sources, growth media, temperatures, & sensor arrays.
           </p>
         </div>
       </div>
@@ -77,95 +111,124 @@ export default function CompareLabPage() {
         </div>
       </div>
 
-      {/* Main Viewport Container */}
-      <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Interactive Overlay Checklist & Multi-View Workspace */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '24px' }}>
         
-        {/* View Switcher Controls */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
-            {selectedPreset}
-          </div>
+        {/* Left Column: Interactive Run Selector Checklist */}
+        <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+            Toggle Runs to Compare
+          </h3>
 
-          <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-tertiary)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            {(['PCA', 'Curves', 'Waterfall'] as const).map(v => (
-              <button
-                key={v}
-                onClick={() => setActiveView(v)}
-                style={{
-                  padding: '5px 14px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: activeView === v ? 'var(--accent-purple)' : 'transparent',
-                  color: activeView === v ? '#fff' : 'var(--text-secondary)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                {v === 'PCA' ? '2D PCA / UMAP Space' : v === 'Curves' ? 'Overlay Curves' : 'TTD Waterfall'}
-              </button>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+            {Object.keys(selectedRuns).map(runName => {
+              const isChecked = selectedRuns[runName];
+              return (
+                <div 
+                  key={runName}
+                  onClick={() => toggleRun(runName)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    background: isChecked ? 'var(--bg-tertiary)' : 'transparent',
+                    border: '1px solid',
+                    borderColor: isChecked ? OVERLAY_COLORS[runName] : 'var(--border-color)',
+                    cursor: 'pointer',
+                    fontSize: '0.82rem',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {isChecked ? <CheckSquare size={16} color={OVERLAY_COLORS[runName]} /> : <Square size={16} color="var(--text-muted)" />}
+                  <span style={{ color: isChecked ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: isChecked ? 600 : 400 }}>
+                    {runName}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* View Content Renderers */}
-        <div style={{ height: '400px', width: '100%', marginTop: '10px' }}>
-          {activeView === 'PCA' && (
-            <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                <XAxis dataKey="x" type="number" stroke="var(--text-secondary)" label={{ value: 'Principal Component 1 (PCA-1)', position: 'insideBottom', offset: -10, fill: 'var(--text-secondary)', fontSize: 11 }} />
-                <YAxis dataKey="y" type="number" stroke="var(--text-secondary)" label={{ value: 'Principal Component 2 (PCA-2)', angle: -90, position: 'insideLeft', fill: 'var(--text-secondary)', fontSize: 11 }} />
-                <RechartsTooltip 
-                  contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', borderRadius: '8px' }}
-                  formatter={(val, name, props) => [`(${props.payload.x}, ${props.payload.y})`, props.payload.name]}
-                />
-                <Scatter name="Pathogen Clusters" data={MOCK_PCA_DATA}>
-                  {MOCK_PCA_DATA.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={GRAM_COLORS[entry.gram] || '#3b82f6'} />
+        {/* Right Column: Multi-View Visualizer */}
+        <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+              {selectedPreset}
+            </div>
+
+            <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-tertiary)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              {(['PCA', 'Curves', 'Waterfall'] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setActiveView(v)}
+                  style={{
+                    padding: '5px 14px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: activeView === v ? 'var(--accent-purple)' : 'transparent',
+                    color: activeView === v ? '#fff' : 'var(--text-secondary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {v === 'PCA' ? '2D PCA / UMAP Space' : v === 'Curves' ? 'Overlay Curves' : 'TTD Waterfall'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ height: '360px', width: '100%', marginTop: '10px' }}>
+            {activeView === 'PCA' && (
+              <ResponsiveContainer width="100%" height="100%">
+                <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                  <XAxis dataKey="x" type="number" stroke="var(--text-secondary)" label={{ value: 'Principal Component 1 (PCA-1)', position: 'insideBottom', offset: -10, fill: 'var(--text-secondary)', fontSize: 11 }} />
+                  <YAxis dataKey="y" type="number" stroke="var(--text-secondary)" label={{ value: 'Principal Component 2 (PCA-2)', angle: -90, position: 'insideLeft', fill: 'var(--text-secondary)', fontSize: 11 }} />
+                  <RechartsTooltip 
+                    contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', borderRadius: '8px' }}
+                    formatter={(val, name, props) => [`(${props.payload.x}, ${props.payload.y})`, props.payload.name]}
+                  />
+                  <Scatter name="Pathogen Clusters" data={MOCK_PCA_DATA}>
+                    {MOCK_PCA_DATA.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={GRAM_COLORS[entry.gram] || '#3b82f6'} />
+                    ))}
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
+            )}
+
+            {activeView === 'Curves' && (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={overlayKineticData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                  <XAxis dataKey="time" stroke="var(--text-secondary)" label={{ value: 'Elapsed Time (minutes)', position: 'insideBottom', offset: -10, fill: 'var(--text-secondary)', fontSize: 11 }} />
+                  <YAxis stroke="var(--text-secondary)" label={{ value: 'Response ΔR/R0', angle: -90, position: 'insideLeft', fill: 'var(--text-secondary)', fontSize: 11 }} />
+                  <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', borderRadius: '8px' }} />
+                  <Legend verticalAlign="top" height={36} />
+                  {Object.keys(selectedRuns).filter(r => selectedRuns[r]).map(runName => (
+                    <Line key={runName} type="monotone" name={runName} dataKey={runName} stroke={OVERLAY_COLORS[runName]} strokeWidth={2.5} dot={false} />
                   ))}
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
-          )}
+                </LineChart>
+              </ResponsiveContainer>
+            )}
 
-          {activeView === 'Curves' && (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={[
-                { time: 0, Pa_ATCC: 0, Pa_Mayo: 0, Pa_NPWT: 0 },
-                { time: 15, Pa_ATCC: 0.1, Pa_Mayo: 0.15, Pa_NPWT: 0.25 },
-                { time: 30, Pa_ATCC: 1.2, Pa_Mayo: 1.45, Pa_NPWT: 1.90 },
-                { time: 45, Pa_ATCC: 2.8, Pa_Mayo: 3.10, Pa_NPWT: 3.65 },
-                { time: 60, Pa_ATCC: 4.0, Pa_Mayo: 4.20, Pa_NPWT: 4.40 }
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                <XAxis dataKey="time" stroke="var(--text-secondary)" />
-                <YAxis stroke="var(--text-secondary)" />
-                <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)' }} />
-                <Legend />
-                <Line type="monotone" name="Pa (ATCC Reference)" dataKey="Pa_ATCC" stroke="#3b82f6" strokeWidth={2} />
-                <Line type="monotone" name="Pa (Mayo Clinical Isolate)" dataKey="Pa_Mayo" stroke="#10b981" strokeWidth={2} />
-                <Line type="monotone" name="Pa (HSS NPWT Effluent)" dataKey="Pa_NPWT" stroke="#f59e0b" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
+            {activeView === 'Waterfall' && (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={ttdWaterfallData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" horizontal={false} />
+                  <XAxis type="number" stroke="var(--text-secondary)" label={{ value: 'Time-to-Detection (Minutes)', position: 'insideBottom', offset: -10, fill: 'var(--text-secondary)', fontSize: 11 }} />
+                  <YAxis type="category" dataKey="name" stroke="var(--text-secondary)" width={180} tick={{ fontSize: 11 }} />
+                  <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)' }} />
+                  <Bar dataKey="TTD" fill="var(--accent-purple)" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
 
-          {activeView === 'Waterfall' && (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={ttdWaterfallData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" horizontal={false} />
-                <XAxis type="number" stroke="var(--text-secondary)" label={{ value: 'TTD (Minutes)', position: 'insideBottom', offset: -5, fill: 'var(--text-secondary)' }} />
-                <YAxis type="category" dataKey="name" stroke="var(--text-secondary)" width={180} tick={{ fontSize: 11 }} />
-                <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)' }} />
-                <Line type="monotone" dataKey="TTD" stroke="var(--accent-purple)" strokeWidth={3} />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* Value Callout Footer */}
-        <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '12px 16px', borderRadius: '8px', borderLeft: '3px solid #3b82f6', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-          <strong>Strategic Insight:</strong> Demonstrates to investors, DoD, and clinical partners that the RAPID-iNose database is not a single static dataset, but a robust real-world asset capable of discriminating clinical isolates across diverse hospital origins and media shifts.
         </div>
 
       </div>

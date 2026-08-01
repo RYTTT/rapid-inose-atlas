@@ -2,39 +2,62 @@
 
 import { useState } from 'react';
 import { MOCK_AI_MODELS } from '@/lib/mockData';
-import { Brain, Cpu, Sparkles, CheckCircle2, Play, Activity, ShieldCheck } from 'lucide-react';
+import { Brain, Cpu, Sparkles, CheckCircle2, Play, Activity, ShieldCheck, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 export default function AiModelsPage() {
   const [selectedModel, setSelectedModel] = useState(MOCK_AI_MODELS[0]);
   const [timeWindow, setTimeWindow] = useState('30 min');
   const [inputSensors, setInputSensors] = useState('6-Channel Standard');
+  const [sampleOrganism, setSampleOrganism] = useState('P. aeruginosa');
+  const [inoculum, setInoculum] = useState('10^5 CFU/mL');
 
-  // Simulation outputs based on input selection
+  // Simulation state outputs
   const [simResult, setSimResult] = useState({
-    predictedPathogen: 'Pseudomonas aeruginosa',
+    predictedPathogen: 'Pseudomonas aeruginosa (PAO1)',
     gramClass: 'Gram-negative',
     amrLikelihood: 12.4,
     biofilmLikelihood: 84.5,
-    confidenceScore: 98.2,
+    confidenceScore: 98.4,
     ttdMinutes: 28
   });
 
   const handleRunInference = () => {
-    // Generate simulated updated predictions based on inputs
+    let path = 'Pseudomonas aeruginosa';
+    let gram = 'Gram-negative';
+    let amr = 12.4;
+    let biofilm = 84.5;
+
+    if (sampleOrganism.includes('Staphylococcus')) {
+      path = 'Staphylococcus aureus (MRSA)';
+      gram = 'Gram-positive';
+      amr = 94.2;
+      biofilm = 91.0;
+    } else if (sampleOrganism.includes('Klebsiella')) {
+      path = 'Klebsiella pneumoniae (ESBL+)';
+      gram = 'Gram-negative';
+      amr = 88.5;
+      biofilm = 42.0;
+    } else if (sampleOrganism.includes('Candida')) {
+      path = 'Candida albicans';
+      gram = 'Fungi';
+      amr = 5.2;
+      biofilm = 78.4;
+    }
+
     const ttd = timeWindow === '15 min' ? 18 : timeWindow === '30 min' ? 28 : 35;
-    const conf = inputSensors.includes('40') ? 99.6 : 98.2;
+    const conf = inputSensors.includes('40') ? 99.6 : 98.4;
+
     setSimResult({
-      predictedPathogen: 'Pseudomonas aeruginosa (PAO1)',
-      gramClass: 'Gram-negative',
-      amrLikelihood: 14.2,
-      biofilmLikelihood: 88.1,
+      predictedPathogen: path,
+      gramClass: gram,
+      amrLikelihood: amr,
+      biofilmLikelihood: biofilm,
       confidenceScore: conf,
       ttdMinutes: ttd
     });
   };
 
-  // ROC-AUC Curve Data
   const rocAucData = [
     { fpr: 0.00, tpr: 0.00 },
     { fpr: 0.02, tpr: 0.85 },
@@ -89,21 +112,35 @@ export default function AiModelsPage() {
       </div>
 
       {/* Main Grid: Interactive Simulator + Performance Metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '24px' }}>
         
         {/* Left Column: Real-Time Interactive Model Inference Simulator */}
         <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
-              Live Model Inference Simulator
+              Live Model Inference Simulator ({selectedModel.name})
             </h3>
-            <span className="badge badge-blue">Layer 10 Prediction Engine</span>
+            <span className="badge badge-blue">Interactive Playground</span>
           </div>
 
           {/* Controls */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '12px', background: 'var(--bg-tertiary)', padding: '12px', borderRadius: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', background: 'var(--bg-tertiary)', padding: '14px', borderRadius: '8px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Input Sensors</label>
+              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Sample Organism</label>
+              <select 
+                value={sampleOrganism}
+                onChange={(e) => setSampleOrganism(e.target.value)}
+                style={{ width: '100%', padding: '6px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', fontSize: '0.82rem' }}
+              >
+                <option>P. aeruginosa</option>
+                <option>Staphylococcus aureus (MRSA)</option>
+                <option>Klebsiella pneumoniae (ESBL+)</option>
+                <option>Candida albicans (Fungi)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Input Sensor Array</label>
               <select 
                 value={inputSensors}
                 onChange={(e) => setInputSensors(e.target.value)}
@@ -133,28 +170,30 @@ export default function AiModelsPage() {
               <button
                 onClick={handleRunInference}
                 style={{
+                  width: '100%',
                   background: 'linear-gradient(135deg, #10b981, #059669)',
                   color: '#fff',
                   border: 'none',
-                  padding: '7px 16px',
+                  padding: '8px',
                   borderRadius: '6px',
                   fontWeight: 700,
-                  fontSize: '0.82rem',
+                  fontSize: '0.85rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '6px'
                 }}
               >
-                <Play size={14} /> Run Inference
+                <Play size={14} /> Run Model Inference
               </button>
             </div>
           </div>
 
-          {/* Prediction Outputs (PDF Page 14 Requirement) */}
+          {/* Prediction Outputs */}
           <div style={{ background: 'rgba(15, 23, 42, 0.8)', border: '1px solid var(--border-highlight)', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ fontSize: '0.8rem', color: 'var(--accent-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Model Prediction Output
+              Live Inference Output
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', fontSize: '0.88rem' }}>
@@ -172,8 +211,19 @@ export default function AiModelsPage() {
               </div>
 
               <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gram Classification</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{simResult.gramClass}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Estimated TTD</div>
+                <div style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>{simResult.ttdMinutes} mins</div>
+              </div>
+
+              <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>AMR Likelihood %</div>
-                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{simResult.amrLikelihood}%</div>
+                <div style={{ fontWeight: 700, color: simResult.amrLikelihood > 50 ? '#f87171' : 'var(--text-primary)' }}>
+                  {simResult.amrLikelihood}%
+                </div>
               </div>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Biofilm Likelihood %</div>
