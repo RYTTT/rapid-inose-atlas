@@ -1,37 +1,42 @@
 "use client";
 
 import { useState } from 'react';
-import { MOCK_AMR_KINETICS, MOCK_BIOFILM_KINETICS, MOCK_MICROPLATE_DOSE_DATA, MicroplateWellDose } from '@/lib/mockData';
+import Image from 'next/image';
+import { MOCK_AMR_KINETICS, MOCK_BIOFILM_KINETICS } from '@/lib/mockData';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { ShieldAlert, Cpu, Sparkles, Clock, CheckCircle2, AlertTriangle, Layers, Sliders, Activity, Grid, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { ShieldAlert, Sparkles, ArrowRight } from 'lucide-react';
+
+/* ─── Well IDs sorted high→low dose (matching MicroBiology repo) ── */
+const SORTED_WELLS = [
+  { id: 'A1', dose: '50 µg/mL',    status: 'healthy' },
+  { id: 'A2', dose: '32 µg/mL',    status: 'healthy' },
+  { id: 'A3', dose: '16 µg/mL',    status: 'healthy' },
+  { id: 'A4', dose: '8 µg/mL',     status: 'healthy' },
+  { id: 'B4', dose: '4 µg/mL',     status: 'subhealthy' },
+  { id: 'B3', dose: '2 µg/mL',     status: 'infected' },
+  { id: 'B2', dose: '1 µg/mL',     status: 'infected' },
+  { id: 'B1', dose: '0.5 µg/mL',   status: 'infected' },
+  { id: 'C1', dose: '0.25 µg/mL',  status: 'infected' },
+  { id: 'C2', dose: '0.125 µg/mL', status: 'infected' },
+  { id: 'C3', dose: '0.06 µg/mL',  status: 'infected' },
+  { id: 'C4', dose: '0 (ctrl)',     status: 'infected' },
+];
+
+const STATUS_BORDER: Record<string, string> = {
+  healthy: '#10b981',
+  subhealthy: '#f59e0b',
+  infected: '#ef4444',
+};
 
 export default function AmrBiofilmPage() {
   const [activeTab, setActiveTab] = useState<'Microplate' | 'AMR' | 'Biofilm'>('Microplate');
   const [selectedPair, setSelectedPair] = useState('MRSA vs MSSA');
   const [abxConcentration, setAbxConcentration] = useState<'None' | 'Sub-MIC' | 'Therapeutic MIC' | 'High Dose'>('Therapeutic MIC');
   const [biofilmStage, setBiofilmStage] = useState<'Attachment' | 'Early Biofilm' | 'Mature Biofilm' | 'Disrupted'>('Mature Biofilm');
-
-  // Microplate & Railway AST Dataset States
-  const [selectedAstDataset, setSelectedAstDataset] = useState<'AST-CIP-2026-07' | 'AST-GENT-2026-07'>('AST-CIP-2026-07');
-  const [selectedOrganismId, setSelectedOrganismId] = useState<string>('52'); // P. aeruginosa ATCC 27853
-  const [selectedWellId, setSelectedWellId] = useState<string>('B4'); // Default MIC boundary well
-  const [astSignalView, setAstSignalView] = useState<'normalized' | 'raw'>('normalized');
-  const [astEndpointHours, setAstEndpointHours] = useState<number>(20.5);
-
-  const astOrganisms = [
-    { id: '54', name: 'Escherichia coli ATCC 25922', type: 'Quality Control Standard' },
-    { id: '50', name: 'Escherichia coli ATCC BAA-196', type: 'ESBL Resistant Reference' },
-    { id: '52', name: 'Pseudomonas aeruginosa ATCC 27853', type: 'Canonical Reference Strain' },
-    { id: '55', name: 'Pseudomonas aeruginosa ATCC BAA-2108', type: 'MDR Clinical Strain' },
-    { id: '53', name: 'Staphylococcus aureus 252', type: 'MRSA Clinical Source' }
-  ];
-
-  // Currently selected well detail for Microbiology dose response
-  const selectedWellInfo = MOCK_MICROPLATE_DOSE_DATA.find(w => w.wellId === selectedWellId) || MOCK_MICROPLATE_DOSE_DATA[4];
+  const [selectedWell, setSelectedWell] = useState<string | null>(null);
 
   // Dynamic AMR kinetics
   const abxFactor = abxConcentration === 'None' ? 1.0 : abxConcentration === 'Sub-MIC' ? 0.7 : abxConcentration === 'Therapeutic MIC' ? 0.1 : 0.02;
-
   const amrChartData = MOCK_AMR_KINETICS.timeMinutes.map((t, idx) => ({
     time: t,
     mssa_no_abx: MOCK_AMR_KINETICS.mssa_no_abx[idx],
@@ -49,479 +54,523 @@ export default function AmrBiofilmPage() {
     biofilm_disrupted: MOCK_BIOFILM_KINETICS.biofilm_disrupted[idx]
   }));
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      
-      {/* Header & Sub-module Selector */}
-      <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>AMR & Microplate Dose-Response Module</h1>
-            <span className="badge badge-red">Layer 8 Antibiotic Intelligence</span>
-          </div>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '4px', fontSize: '0.88rem' }}>
-            Integrating Microplate 12-Well Dose Alignment, Health Transition Color-Bars, & Published Railway AST Data.
-          </p>
-        </div>
+  const tabStyle = (tab: string, color: string) => ({
+    padding: '8px 20px',
+    borderRadius: '8px',
+    border: 'none',
+    background: activeTab === tab ? color : 'transparent',
+    color: activeTab === tab ? '#fff' : 'var(--text-secondary)',
+    fontSize: '0.85rem',
+    fontWeight: 700 as const,
+    cursor: 'pointer' as const,
+    transition: 'all 0.2s',
+  });
 
-        {/* 3-Tab Switcher */}
-        <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-tertiary)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-          <button
-            onClick={() => setActiveTab('Microplate')}
-            style={{
-              padding: '6px 16px',
-              borderRadius: '6px',
-              border: 'none',
-              background: activeTab === 'Microplate' ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
-              color: activeTab === 'Microplate' ? '#fff' : 'var(--text-secondary)',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
-          >
-            12-Well Dose-Response & Transition
-          </button>
-          <button
-            onClick={() => setActiveTab('AMR')}
-            style={{
-              padding: '6px 16px',
-              borderRadius: '6px',
-              border: 'none',
-              background: activeTab === 'AMR' ? 'var(--accent-danger)' : 'transparent',
-              color: activeTab === 'AMR' ? '#fff' : 'var(--text-secondary)',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
-          >
-            AMR Phenotype Trajectories
-          </button>
-          <button
-            onClick={() => setActiveTab('Biofilm')}
-            style={{
-              padding: '6px 16px',
-              borderRadius: '6px',
-              border: 'none',
-              background: activeTab === 'Biofilm' ? 'var(--accent-secondary)' : 'transparent',
-              color: activeTab === 'Biofilm' ? '#fff' : 'var(--text-secondary)',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
-          >
-            Biofilm Maturation
-          </button>
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', maxWidth: '1100px', margin: '0 auto' }}>
+
+      {/* ── Header ── */}
+      <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+          <ShieldAlert size={22} color="#ef4444" />
+          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>AMR & Antibiotic Resistance</h1>
         </div>
+        <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.88rem' }}>
+          Microplate dose-response imaging, sensor-based AST kinetics, and biofilm maturation detection.
+        </p>
       </div>
 
-      {activeTab === 'Microplate' ? (
-        /* Tab 1: Microplate Well Extraction & Growth Curve Dose-Response Alignment (minyaozhu/MicroBiology + Railway AST Data) */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
-          {/* Controls Bar for AST Dataset & Organism */}
-          <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Published AST Dataset:</span>
-              <select 
-                value={selectedAstDataset}
-                onChange={(e) => setSelectedAstDataset(e.target.value as any)}
-                style={{ padding: '6px 12px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-highlight)', borderRadius: '6px', color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 600 }}
-              >
-                <option value="AST-CIP-2026-07">AST-CIP-2026-07 · Ciprofloxacin (July 2026)</option>
-                <option value="AST-GENT-2026-07">AST-GENT-2026-07 · Gentamicin (July 2026)</option>
-              </select>
+      {/* ── Tab Switcher ── */}
+      <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-tertiary)', padding: '4px', borderRadius: '10px', border: '1px solid var(--border-color)', width: 'fit-content' }}>
+        <button onClick={() => setActiveTab('Microplate')} style={tabStyle('Microplate', '#10b981')}>
+          Dose-Response Imaging
+        </button>
+        <button onClick={() => setActiveTab('AMR')} style={tabStyle('AMR', '#ef4444')}>
+          AMR Sensor Kinetics
+        </button>
+        <button onClick={() => setActiveTab('Biofilm')} style={tabStyle('Biofilm', '#3b82f6')}>
+          Biofilm Maturation
+        </button>
+      </div>
 
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, marginLeft: '12px' }}>Organism & Strain:</span>
-              <select 
-                value={selectedOrganismId}
-                onChange={(e) => setSelectedOrganismId(e.target.value)}
-                style={{ padding: '6px 12px', background: 'var(--bg-tertiary)', border: '1px solid var(--border-highlight)', borderRadius: '6px', color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 600 }}
-              >
-                {astOrganisms.map(o => (
-                  <option key={o.id} value={o.id}>{o.name}</option>
-                ))}
-              </select>
+      {/* ────────────────────────────────────────── */}
+      {/* TAB 1: MICROPLATE DOSE-RESPONSE IMAGING   */}
+      {/* ────────────────────────────────────────── */}
+      {activeTab === 'Microplate' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '36px' }}>
+
+          {/* ── Story Intro ── */}
+          <section>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              From 3 Lab Images → Automated Resistance Visualization
+            </h2>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: '700px' }}>
+              Our image processing pipeline takes three standard lab photos — a 12-well microplate, 12 individual growth curves, and a concentration layout map — and automatically produces a sorted, color-coded dose-response alignment that pinpoints the <strong style={{ color: '#f59e0b' }}>Minimum Inhibitory Concentration (MIC)</strong>.
+            </p>
+          </section>
+
+          {/* ── The 3 Source Images ── */}
+          <section>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <Sparkles size={16} color="#f59e0b" />
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Source Data — 3 Lab Images</h3>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span className="badge badge-emerald">Signal View: {astSignalView === 'normalized' ? 'Signed Baseline-Relative %' : 'Raw Resistance'}</span>
-              <span className="badge badge-amber">Endpoint: {astEndpointHours}h</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+              {/* Image 1: 12-well microplate photo */}
+              <div style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                overflow: 'hidden',
+              }}>
+                <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3' }}>
+                  <Image
+                    src="/microbiology/12-wells.jpeg"
+                    alt="12-well microplate photograph"
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                </div>
+                <div style={{ padding: '12px 14px' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>12-Well Microplate Photo</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Original lab photograph of wells A1–C4</div>
+                </div>
+              </div>
+
+              {/* Image 2: 12 growth curve charts */}
+              <div style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                overflow: 'hidden',
+              }}>
+                <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3' }}>
+                  <Image
+                    src="/microbiology/12-charts-v2.jpg"
+                    alt="12 growth curve charts"
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                </div>
+                <div style={{ padding: '12px 14px' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>12 Growth Curve Charts</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>OD600 time-series for each well</div>
+                </div>
+              </div>
+
+              {/* Image 3: Concentration layout */}
+              <div style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                overflow: 'hidden',
+              }}>
+                <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3' }}>
+                  <Image
+                    src="/microbiology/12-layout.png"
+                    alt="Antibiotic concentration layout"
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                </div>
+                <div style={{ padding: '12px 14px' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>Concentration Layout Map</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Antibiotic dose annotation (50→0 µg/mL)</div>
+                </div>
+              </div>
             </div>
+          </section>
+
+          {/* ── Processing Flow Arrow ── */}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', padding: '8px 0' }}>
+            <div style={{ height: '1px', flex: 1, background: 'linear-gradient(to right, transparent, var(--border-color))' }} />
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '8px 20px', borderRadius: '20px',
+              background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)',
+            }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#60a5fa', letterSpacing: '0.5px' }}>AUTOMATED IMAGE PROCESSING PIPELINE</span>
+              <ArrowRight size={16} color="#60a5fa" />
+            </div>
+            <div style={{ height: '1px', flex: 1, background: 'linear-gradient(to left, transparent, var(--border-color))' }} />
           </div>
 
-          {/* Health Status Transition Bar Legend Banner */}
-          <div className="glass-panel" style={{ padding: '16px 20px', background: 'rgba(15, 23, 42, 0.85)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles size={18} color="var(--accent-warning)" />
-              <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>In-Between Health Status Transition Color-Bars (Sorted High → Low Dose)</span>
+          {/* ── Generated Output: Full Composite Visualization ── */}
+          <section>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <Sparkles size={16} color="#10b981" />
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Generated Output — Dose-Response Alignment with Health Transition Color-Bars</h3>
             </div>
 
-            <div style={{ display: 'flex', gap: '16px', fontSize: '0.82rem', fontWeight: 600 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: 12, height: 12, borderRadius: '3px', background: '#10B981' }}></span>
-                <span style={{ color: '#34d399' }}>Healthy (#1 ~ #4: 50.0 - 6.25 µg/mL)</span>
+            {/* Legend bar */}
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+                <span style={{ width: 14, height: 14, borderRadius: '3px', background: '#10b981', display: 'inline-block' }} />
+                <span style={{ color: '#34d399', fontWeight: 600 }}>Healthy (#1–#4)</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: 12, height: 12, borderRadius: '3px', background: '#F59E0B' }}></span>
-                <span style={{ color: '#fbbf24' }}>Sub-Healthy MIC Threshold (#5: 3.13 µg/mL)</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+                <span style={{ width: 14, height: 14, borderRadius: '3px', background: '#f59e0b', display: 'inline-block' }} />
+                <span style={{ color: '#fbbf24', fontWeight: 600 }}>Sub-Healthy / MIC Boundary (#5)</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: 12, height: 12, borderRadius: '3px', background: '#EF4444' }}></span>
-                <span style={{ color: '#f87171' }}>Infection (#6 ~ #12: 1.56 - 0.0 µg/mL)</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+                <span style={{ width: 14, height: 14, borderRadius: '3px', background: '#ef4444', display: 'inline-block' }} />
+                <span style={{ color: '#f87171', fontWeight: 600 }}>Infection (#6–#12)</span>
               </div>
             </div>
-          </div>
 
-          {/* 12-Well Row Composite Visualizer with In-Between Transition Color-Bars */}
-          <div className="glass-panel" style={{ padding: '20px', overflowX: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
-              12-Well Microplate Extraction & Aligned Growth Curve Dose-Response Row
+            {/* The generated composite image */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              overflow: 'hidden',
+            }}>
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '3/1' }}>
+                <Image
+                  src="/microbiology/sorted_wells_colorbars.png"
+                  alt="Sorted wells and growth curves with health transition color bars — high to low antibiotic dose"
+                  fill
+                  style={{ objectFit: 'contain', padding: '12px' }}
+                  sizes="100vw"
+                  priority
+                />
+              </div>
+            </div>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '8px', textAlign: 'center', fontStyle: 'italic' }}>
+              Ciprofloxacin × <em>E. coli</em> ATCC 25922 — Wells sorted high → low concentration, with in-between health transition color-bars (Green → Yellow MIC → Red)
+            </p>
+          </section>
+
+          {/* ── Individual Well Gallery (clickable) ── */}
+          <section>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px' }}>
+              Individual Well Extractions — Click to Inspect
             </h3>
-
-            <div style={{ display: 'flex', gap: '8px', minWidth: '1080px', paddingBottom: '8px' }}>
-              {MOCK_MICROPLATE_DOSE_DATA.map((w, idx) => {
-                const isSelected = selectedWellId === w.wellId;
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+              {SORTED_WELLS.map((w) => {
+                const isSelected = selectedWell === w.id;
+                const borderColor = STATUS_BORDER[w.status];
                 return (
-                  <div key={w.wellId} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                    
-                    {/* Individual Well + Chart Card */}
-                    <div 
-                      onClick={() => setSelectedWellId(w.wellId)}
-                      style={{
-                        flex: 1,
-                        background: isSelected ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-tertiary)',
-                        border: '2px solid',
-                        borderColor: isSelected ? 'var(--accent-primary)' : w.colorHex,
-                        borderRadius: '10px',
-                        padding: '10px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '8px',
-                        transition: 'all 0.2s ease',
-                        boxShadow: isSelected ? '0 0 12px rgba(59, 130, 246, 0.4)' : 'none'
-                      }}
-                    >
-                      {/* Well Rank & ID */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700 }}>
-                        <span>#{w.rank}</span>
-                        <span style={{ color: 'var(--text-primary)' }}>{w.wellId}</span>
-                      </div>
-
-                      {/* Simulated Carved Well Circle */}
-                      <div style={{
-                        width: '46px',
-                        height: '46px',
-                        borderRadius: '50%',
-                        border: `3px solid ${w.colorHex}`,
-                        background: w.status === 'Healthy' ? 'rgba(16, 185, 129, 0.2)' : w.status === 'Sub-Healthy' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(239, 68, 68, 0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.75rem',
-                        fontWeight: 800,
-                        color: w.colorHex
-                      }}>
-                        {w.wellId}
-                      </div>
-
-                      {/* Concentration Label */}
-                      <div style={{ fontSize: '0.7rem', fontWeight: 700, textAlign: 'center', color: 'var(--text-primary)', height: '24px', display: 'flex', alignItems: 'center' }}>
-                        {w.doseVal > 0 ? `${w.doseVal} µg/mL` : '0 µg/mL'}
-                      </div>
-
-                      {/* Aligned Mini Growth Curve Chart */}
-                      <div style={{ height: '60px', width: '100%' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={w.growthCurve}>
-                            <Line type="monotone" dataKey="signal" stroke={w.colorHex} strokeWidth={2} dot={false} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-
-                      {/* Status Badge */}
-                      <div style={{
-                        background: `${w.colorHex}22`,
-                        color: w.colorHex,
-                        border: `1px solid ${w.colorHex}55`,
-                        borderRadius: '4px',
-                        padding: '2px 4px',
-                        fontSize: '0.65rem',
-                        fontWeight: 700,
-                        textAlign: 'center',
-                        width: '100%'
-                      }}>
-                        {w.status}
-                      </div>
+                  <div
+                    key={w.id}
+                    onClick={() => setSelectedWell(isSelected ? null : w.id)}
+                    style={{
+                      background: isSelected ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.02)',
+                      border: `2px solid ${isSelected ? '#3b82f6' : borderColor + '66'}`,
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: isSelected ? `0 0 16px ${borderColor}40` : 'none',
+                    }}
+                  >
+                    {/* Well image */}
+                    <div style={{ position: 'relative', width: '100%', aspectRatio: '1' }}>
+                      <Image
+                        src={`/microbiology/carved_wells/well_${w.id}.png`}
+                        alt={`Well ${w.id}`}
+                        fill
+                        style={{ objectFit: 'cover' }}
+                        sizes="(max-width: 768px) 50vw, 16vw"
+                      />
                     </div>
-
-                    {/* In-Between Health Status Transition Color-Bar */}
-                    {idx < MOCK_MICROPLATE_DOSE_DATA.length - 1 && (
-                      <div style={{
-                        width: '8px',
-                        height: '100px',
-                        margin: '0 4px',
-                        borderRadius: '4px',
-                        background: `linear-gradient(to bottom, ${w.colorHex}, ${MOCK_MICROPLATE_DOSE_DATA[idx+1].colorHex})`,
-                        opacity: 0.8
-                      }} />
-                    )}
-
+                    {/* Label */}
+                    <div style={{ padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: borderColor }}>{w.id}</span>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{w.dose}</span>
+                    </div>
                   </div>
                 );
               })}
             </div>
-          </div>
+          </section>
 
-          {/* Selected Well Coordinated Deep Inspector */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-            
-            <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
-                  Coordinated 6-Sensor Response for Well {selectedWellInfo.wellId} ({selectedWellInfo.doseStr})
-                </h3>
-                <span className="badge badge-purple" style={{ backgroundColor: `${selectedWellInfo.colorHex}22`, color: selectedWellInfo.colorHex, borderColor: selectedWellInfo.colorHex }}>
-                  Health State: {selectedWellInfo.status}
+          {/* ── Selected Well Detail (well + chart side by side) ── */}
+          {selectedWell && (
+            <section style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              padding: '20px',
+            }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>
+                Well {selectedWell} — Detail View
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                {/* Carved well image */}
+                <div style={{ position: 'relative', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                  <Image
+                    src={`/microbiology/carved_wells/well_${selectedWell}.png`}
+                    alt={`Well ${selectedWell} extracted`}
+                    fill
+                    style={{ objectFit: 'contain' }}
+                    sizes="50vw"
+                  />
+                </div>
+                {/* Corresponding growth curve chart */}
+                <div style={{ position: 'relative', aspectRatio: '1', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                  <Image
+                    src={`/microbiology/split_charts/chart_${selectedWell}.png`}
+                    alt={`Growth curve chart ${selectedWell}`}
+                    fill
+                    style={{ objectFit: 'contain' }}
+                    sizes="50vw"
+                  />
+                </div>
+              </div>
+              <div style={{ marginTop: '12px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Well {selectedWell}</strong>
+                {' · '}
+                {SORTED_WELLS.find(w => w.id === selectedWell)?.dose}
+                {' · Status: '}
+                <span style={{ color: STATUS_BORDER[SORTED_WELLS.find(w => w.id === selectedWell)?.status || 'infected'], fontWeight: 700 }}>
+                  {SORTED_WELLS.find(w => w.id === selectedWell)?.status === 'healthy' ? 'Healthy (No Growth)' :
+                   SORTED_WELLS.find(w => w.id === selectedWell)?.status === 'subhealthy' ? 'Sub-Healthy (MIC Boundary)' :
+                   'Infected (Bacterial Growth)'}
                 </span>
               </div>
+            </section>
+          )}
 
-              <div style={{ height: '280px', width: '100%' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={selectedWellInfo.growthCurve}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                    <XAxis dataKey="time" stroke="var(--text-secondary)" label={{ value: 'Time (minutes)', position: 'insideBottom', offset: -5, fill: 'var(--text-secondary)', fontSize: 11 }} />
-                    <YAxis stroke="var(--text-secondary)" label={{ value: 'Response ΔR/R0', angle: -90, position: 'insideLeft', fill: 'var(--text-secondary)', fontSize: 11 }} />
-                    <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', borderRadius: '8px' }} />
-                    <Line type="monotone" name="Canonical Sensor Signal" dataKey="signal" stroke={selectedWellInfo.colorHex} strokeWidth={3} dot={{ r: 4 }} />
-                  </LineChart>
-                </ResponsiveContainer>
+          {/* ── Reference Comparison ── */}
+          <section>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
+              Reference Benchmark (Claude AI Result)
+            </h3>
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              overflow: 'hidden',
+            }}>
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '2.5/1' }}>
+                <Image
+                  src="/microbiology/claude_result.png"
+                  alt="Claude AI reference benchmark visualization"
+                  fill
+                  style={{ objectFit: 'contain', padding: '12px' }}
+                  sizes="100vw"
+                />
               </div>
             </div>
-
-            {/* Well Meta & MIC Callout Card */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h4 style={{ fontSize: '0.9rem', color: 'var(--accent-primary)', textTransform: 'uppercase', margin: 0 }}>
-                  Well {selectedWellInfo.wellId} Metadata
-                </h4>
-
-                <div style={{ fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div><span style={{ color: 'var(--text-muted)' }}>Concentration:</span> <strong>{selectedWellInfo.doseStr}</strong></div>
-                  <div><span style={{ color: 'var(--text-muted)' }}>Health Transition:</span> <strong style={{ color: selectedWellInfo.colorHex }}>{selectedWellInfo.status}</strong></div>
-                  <div><span style={{ color: 'var(--text-muted)' }}>MIC Boundary:</span> <strong>{selectedWellInfo.micBoundary ? 'Yes (3.13 µg/mL Threshold)' : 'No'}</strong></div>
-                  <div><span style={{ color: 'var(--text-muted)' }}>Manual Call:</span> <strong>{selectedWellInfo.status === 'Healthy' ? 'No Growth' : 'Growth'}</strong></div>
-                </div>
-              </div>
-
-              <div className="glass-panel" style={{ padding: '16px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', fontSize: '0.82rem' }}>
-                <div style={{ fontWeight: 700, color: '#fbbf24' }}>MIC Boundary Callout</div>
-                <div style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  Minimum Inhibitory Concentration (MIC) detected at <strong>3.13 µg/mL (Well B4)</strong>, transitioning from Healthy green to Infection red.
-                </div>
-              </div>
-            </div>
-
-          </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px', textAlign: 'center', fontStyle: 'italic' }}>
+              Side-by-side comparison — our automated pipeline output vs. Claude AI-generated reference
+            </p>
+          </section>
 
         </div>
-      ) : activeTab === 'AMR' ? (
-        /* Tab 2: AMR Sub-module */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
-          {/* Controls Bar */}
-          <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>AMR Strain Pair:</span>
-              {['MRSA vs MSSA', 'VRE vs VSE', 'CRE vs Susceptible', 'CRAB vs Susceptible'].map(pair => (
-                <button
-                  key={pair}
-                  onClick={() => setSelectedPair(pair)}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border-color)',
-                    background: selectedPair === pair ? 'rgba(239, 68, 68, 0.2)' : 'var(--bg-tertiary)',
-                    color: selectedPair === pair ? '#f87171' : 'var(--text-secondary)',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {pair}
-                </button>
-              ))}
-            </div>
+      )}
 
-            {/* Antibiotic Dose Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Antibiotic Dose:</span>
-              {(['None', 'Sub-MIC', 'Therapeutic MIC', 'High Dose'] as const).map(dose => (
-                <button
-                  key={dose}
-                  onClick={() => setAbxConcentration(dose)}
-                  style={{
-                    padding: '5px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border-color)',
-                    background: abxConcentration === dose ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                    color: abxConcentration === dose ? '#fff' : 'var(--text-secondary)',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {dose}
-                </button>
-              ))}
-            </div>
+      {/* ────────────────────────────────────────── */}
+      {/* TAB 2: AMR SENSOR KINETICS                */}
+      {/* ────────────────────────────────────────── */}
+      {activeTab === 'AMR' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+          {/* Controls */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>Strain Pair:</span>
+            {['MRSA vs MSSA', 'VRE vs VSE', 'CRE vs Susceptible', 'CRAB vs Susceptible'].map(pair => (
+              <button
+                key={pair}
+                onClick={() => setSelectedPair(pair)}
+                style={{
+                  padding: '6px 14px', borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: selectedPair === pair ? 'rgba(239,68,68,0.15)' : 'var(--bg-tertiary)',
+                  color: selectedPair === pair ? '#f87171' : 'var(--text-secondary)',
+                  fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
+                }}
+              >{pair}</button>
+            ))}
           </div>
 
-          {/* Paired Strain Response Chart */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>Antibiotic Dose:</span>
+            {(['None', 'Sub-MIC', 'Therapeutic MIC', 'High Dose'] as const).map(dose => (
+              <button
+                key={dose}
+                onClick={() => setAbxConcentration(dose)}
+                style={{
+                  padding: '5px 12px', borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: abxConcentration === dose ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                  color: abxConcentration === dose ? '#fff' : 'var(--text-secondary)',
+                  fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                }}
+              >{dose}</button>
+            ))}
+          </div>
+
+          {/* Chart + sidebar */}
           <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr', gap: '24px' }}>
-            
-            <div className="glass-panel" style={{ padding: '20px' }}>
+
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              padding: '20px',
+            }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Paired Strain Kinetics ({selectedPair})</h3>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Dose Exposure: {abxConcentration}</span>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Paired Strain Kinetics ({selectedPair})</h3>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Dose Exposure: {abxConcentration}</span>
                 </div>
-                <span className="badge badge-red">Earliest Diff: 45 Minutes</span>
+                <span style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                  Earliest Diff: 45 min
+                </span>
               </div>
 
               <div style={{ height: '340px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={amrChartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                    <XAxis dataKey="time" stroke="var(--text-secondary)" label={{ value: 'Time Under Antibiotic Exposure (minutes)', position: 'insideBottom', offset: -10, fill: 'var(--text-secondary)', fontSize: 11 }} />
-                    <YAxis stroke="var(--text-secondary)" label={{ value: 'Sensor Signal ΔR/R0', angle: -90, position: 'insideLeft', fill: 'var(--text-secondary)', fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="time" stroke="var(--text-muted)" label={{ value: 'Time (minutes)', position: 'insideBottom', offset: -10, fill: 'var(--text-muted)', fontSize: 11 }} />
+                    <YAxis stroke="var(--text-muted)" label={{ value: 'Sensor Signal ΔR/R0', angle: -90, position: 'insideLeft', fill: 'var(--text-muted)', fontSize: 11 }} />
                     <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', borderRadius: '8px' }} />
                     <Legend verticalAlign="top" height={36} />
-
-                    <ReferenceLine x={45} stroke="#ef4444" strokeDasharray="5 5" label={{ value: 'Earliest AMR Diff (45 min)', fill: '#ef4444', position: 'top' }} />
-
-                    <Line type="monotone" name="Susceptible Strain (No Antibiotic)" dataKey="mssa_no_abx" stroke="#60a5fa" strokeWidth={2} dot={false} />
-                    <Line type="monotone" name={`Susceptible Strain (+ ${abxConcentration})`} dataKey="mssa_with_oxacillin" stroke="#94a3b8" strokeDasharray="4 4" strokeWidth={2} dot={false} />
-                    <Line type="monotone" name="Resistant Strain (No Antibiotic)" dataKey="mrsa_no_abx" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                    <Line type="monotone" name={`Resistant Strain (+ ${abxConcentration} RESISTANT)`} dataKey="mrsa_with_oxacillin" stroke="#ef4444" strokeWidth={3} dot={false} />
+                    <ReferenceLine x={45} stroke="#ef4444" strokeDasharray="5 5" label={{ value: 'Earliest AMR Diff', fill: '#ef4444', position: 'top' }} />
+                    <Line type="monotone" name="Susceptible (No Abx)" dataKey="mssa_no_abx" stroke="#60a5fa" strokeWidth={2} dot={false} />
+                    <Line type="monotone" name={`Susceptible (+ ${abxConcentration})`} dataKey="mssa_with_oxacillin" stroke="#94a3b8" strokeDasharray="4 4" strokeWidth={2} dot={false} />
+                    <Line type="monotone" name="Resistant (No Abx)" dataKey="mrsa_no_abx" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                    <Line type="monotone" name={`Resistant (+ ${abxConcentration})`} dataKey="mrsa_with_oxacillin" stroke="#ef4444" strokeWidth={3} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* AMR Confusion Matrix & Performance Card */}
+            {/* Confusion Matrix */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="glass-panel" style={{ padding: '20px' }}>
-                <h4 style={{ fontSize: '0.9rem', color: 'var(--accent-danger)', textTransform: 'uppercase', marginBottom: '12px', margin: 0 }}>
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '16px',
+                padding: '20px',
+              }}>
+                <h4 style={{ fontSize: '0.85rem', color: '#f87171', textTransform: 'uppercase', marginBottom: '12px', margin: 0 }}>
                   AMR Classifier Confusion Matrix
                 </h4>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8rem', textAlign: 'center', marginTop: '10px' }}>
-                  <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '12px', borderRadius: '6px', border: '1px solid #10b981' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8rem', textAlign: 'center', marginTop: '12px' }}>
+                  <div style={{ background: 'rgba(16,185,129,0.12)', padding: '12px', borderRadius: '8px', border: '1px solid #10b98144' }}>
                     <div style={{ color: '#34d399', fontWeight: 800, fontSize: '1.2rem' }}>148</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>True Resistant (TP)</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>True Resistant</div>
                   </div>
-                  <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '6px', border: '1px solid #ef4444' }}>
+                  <div style={{ background: 'rgba(239,68,68,0.08)', padding: '12px', borderRadius: '8px', border: '1px solid #ef444444' }}>
                     <div style={{ color: '#f87171', fontWeight: 800, fontSize: '1.2rem' }}>3</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>False Resistant (FP)</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>False Resistant</div>
                   </div>
-                  <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '12px', borderRadius: '6px', border: '1px solid #ef4444' }}>
+                  <div style={{ background: 'rgba(239,68,68,0.08)', padding: '12px', borderRadius: '8px', border: '1px solid #ef444444' }}>
                     <div style={{ color: '#f87171', fontWeight: 800, fontSize: '1.2rem' }}>4</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>False Suscept (FN)</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>False Susceptible</div>
                   </div>
-                  <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '12px', borderRadius: '6px', border: '1px solid #10b981' }}>
+                  <div style={{ background: 'rgba(16,185,129,0.12)', padding: '12px', borderRadius: '8px', border: '1px solid #10b98144' }}>
                     <div style={{ color: '#34d399', fontWeight: 800, fontSize: '1.2rem' }}>185</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>True Suscept (TN)</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>True Susceptible</div>
                   </div>
                 </div>
               </div>
 
-              <div className="glass-panel" style={{ padding: '16px', fontSize: '0.82rem' }}>
-                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Pharma AST Value</div>
-                <div style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  Accelerates functional AST from 48 hours to &lt; 1 hour, allowing targeted drug therapy selection.
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '16px', fontSize: '0.82rem',
+              }}>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Why This Matters</div>
+                <div style={{ color: 'var(--text-secondary)', marginTop: '6px', lineHeight: 1.6 }}>
+                  Accelerates functional AST from 48 hours to &lt; 1 hour, enabling targeted therapy selection at the point of care.
                 </div>
               </div>
             </div>
-
           </div>
-
         </div>
-      ) : (
-        /* Tab 3: Biofilm Sub-module */
+      )}
+
+      {/* ────────────────────────────────────────── */}
+      {/* TAB 3: BIOFILM MATURATION                 */}
+      {/* ────────────────────────────────────────── */}
+      {activeTab === 'Biofilm' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
-          <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>Biofilm Growth Stage Selector:</span>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>Biofilm Stage:</span>
             {(['Attachment', 'Early Biofilm', 'Mature Biofilm', 'Disrupted'] as const).map(stg => (
               <button
                 key={stg}
                 onClick={() => setBiofilmStage(stg)}
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: '6px',
+                  padding: '6px 14px', borderRadius: '8px',
                   border: '1px solid var(--border-color)',
-                  background: biofilmStage === stg ? 'var(--accent-secondary)' : 'var(--bg-tertiary)',
+                  background: biofilmStage === stg ? '#3b82f6' : 'var(--bg-tertiary)',
                   color: biofilmStage === stg ? '#fff' : 'var(--text-secondary)',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
+                  fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
                 }}
-              >
-                {stg}
-              </button>
+              >{stg}</button>
             ))}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr', gap: '24px' }}>
-            
-            <div className="glass-panel" style={{ padding: '20px' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              padding: '20px',
+            }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}>
                 Planktonic vs Biofilm Maturation Kinetics
               </h3>
-
               <div style={{ height: '340px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={biofilmChartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                    <XAxis dataKey="hours" stroke="var(--text-secondary)" label={{ value: 'Incubation Time (hours)', position: 'insideBottom', offset: -10, fill: 'var(--text-secondary)', fontSize: 11 }} />
-                    <YAxis stroke="var(--text-secondary)" label={{ value: 'Biofilm Nanosensor Index', angle: -90, position: 'insideLeft', fill: 'var(--text-secondary)', fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                    <XAxis dataKey="hours" stroke="var(--text-muted)" label={{ value: 'Time (hours)', position: 'insideBottom', offset: -10, fill: 'var(--text-muted)', fontSize: 11 }} />
+                    <YAxis stroke="var(--text-muted)" label={{ value: 'Biofilm Index', angle: -90, position: 'insideLeft', fill: 'var(--text-muted)', fontSize: 11 }} />
                     <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-color)', borderRadius: '8px' }} />
                     <Legend verticalAlign="top" height={36} />
-
-                    <Line type="monotone" name="Planktonic Floating Control" dataKey="planktonic" stroke="#94a3b8" strokeDasharray="4 4" strokeWidth={2} dot={false} />
-                    <Line type="monotone" name="Early Attachment Biofilm" dataKey="biofilm_early" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                    <Line type="monotone" name="Mature Surface Biofilm" dataKey="biofilm_mature" stroke="#10b981" strokeWidth={3} dot={false} />
-                    <Line type="monotone" name="Anti-Biofilm Treatment Disruption" dataKey="biofilm_disrupted" stroke="#ef4444" strokeWidth={2} dot={false} />
+                    <Line type="monotone" name="Planktonic Control" dataKey="planktonic" stroke="#94a3b8" strokeDasharray="4 4" strokeWidth={2} dot={false} />
+                    <Line type="monotone" name="Early Biofilm" dataKey="biofilm_early" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                    <Line type="monotone" name="Mature Biofilm" dataKey="biofilm_mature" stroke="#10b981" strokeWidth={3} dot={false} />
+                    <Line type="monotone" name="Disrupted" dataKey="biofilm_disrupted" stroke="#ef4444" strokeWidth={2} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="glass-panel" style={{ padding: '20px' }}>
-                <h4 style={{ fontSize: '0.9rem', color: 'var(--accent-secondary)', textTransform: 'uppercase', marginBottom: '10px', margin: 0 }}>
-                  Biofilm Validation Specs
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '16px',
+                padding: '20px',
+              }}>
+                <h4 style={{ fontSize: '0.82rem', color: '#60a5fa', textTransform: 'uppercase', marginBottom: '10px', margin: 0 }}>
+                  Validation Methods
                 </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '10px' }}>
                   <div>• Crystal Violet Staining (OD 595nm)</div>
                   <div>• Confocal Laser Scanning Microscopy</div>
-                  <div>• EPS Extracellular Matrix Quantification</div>
+                  <div>• EPS Matrix Quantification</div>
                   <div>• CDC Biofilm Reactor Model</div>
                 </div>
               </div>
 
-              <div className="glass-panel" style={{ padding: '16px', fontSize: '0.82rem' }}>
-                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Target for Zimmer Biomet</div>
-                <div style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  Distinguishes low-grade prosthetic joint biofilms from acute floating planktonic infections.
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '16px', fontSize: '0.82rem',
+              }}>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Clinical Application</div>
+                <div style={{ color: 'var(--text-secondary)', marginTop: '6px', lineHeight: 1.6 }}>
+                  Distinguishes low-grade prosthetic joint biofilms from acute planktonic infections — critical for Zimmer Biomet implant monitoring.
                 </div>
               </div>
             </div>
-
           </div>
-
         </div>
       )}
 
