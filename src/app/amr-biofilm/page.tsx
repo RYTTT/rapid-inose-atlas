@@ -97,132 +97,36 @@ export default function AmrBiofilmPage() {
       {/* TAB 1: MICROPLATE DOSE-RESPONSE IMAGING   */}
       {/* ────────────────────────────────────────── */}
       {activeTab === 'Microplate' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '36px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
-          {/* ── Story Intro ── */}
+          {/* ── Investor-facing narrative ── */}
           <section>
             <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
-              From 3 Lab Images → Automated Resistance Visualization
+              Antibiotic Dose-Response — MIC Determination
             </h2>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: '700px' }}>
-              Our image processing pipeline takes three standard lab photos — a 12-well microplate, 12 individual growth curves, and a concentration layout map — and automatically produces a sorted, color-coded dose-response alignment that pinpoints the <strong style={{ color: '#f59e0b' }}>Minimum Inhibitory Concentration (MIC)</strong>.
+              Our platform automatically determines the <strong style={{ color: '#f59e0b' }}>Minimum Inhibitory Concentration (MIC)</strong> — the lowest antibiotic dose that stops bacterial growth. Wells are sorted from highest to lowest drug concentration, with color-coded health transitions.
             </p>
           </section>
 
-          {/* ── The 3 Source Images ── */}
-          <section>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <Sparkles size={16} color="#f59e0b" />
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Source Data — 3 Lab Images</h3>
+          {/* ── Legend ── */}
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}>
+              <span style={{ width: 14, height: 14, borderRadius: '3px', background: '#10b981', display: 'inline-block' }} />
+              <span style={{ color: '#34d399', fontWeight: 600 }}>No Growth (Effective Dose)</span>
             </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-              {/* Image 1: 12-well microplate photo */}
-              <div style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                overflow: 'hidden',
-              }}>
-                <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3' }}>
-                  <Image
-                    src="/microbiology/12-wells.jpeg"
-                    alt="12-well microplate photograph"
-                    fill
-                    style={{ objectFit: 'cover' }}
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                </div>
-                <div style={{ padding: '12px 14px' }}>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>12-Well Microplate Photo</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Original lab photograph of wells A1–C4</div>
-                </div>
-              </div>
-
-              {/* Image 2: 12 growth curve charts */}
-              <div style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                overflow: 'hidden',
-              }}>
-                <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3' }}>
-                  <Image
-                    src="/microbiology/12-charts-v2.jpg"
-                    alt="12 growth curve charts"
-                    fill
-                    style={{ objectFit: 'cover' }}
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                </div>
-                <div style={{ padding: '12px 14px' }}>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>12 Growth Curve Charts</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>OD600 time-series for each well</div>
-                </div>
-              </div>
-
-              {/* Image 3: Concentration layout */}
-              <div style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                overflow: 'hidden',
-              }}>
-                <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3' }}>
-                  <Image
-                    src="/microbiology/12-layout.png"
-                    alt="Antibiotic concentration layout"
-                    fill
-                    style={{ objectFit: 'cover' }}
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                </div>
-                <div style={{ padding: '12px 14px' }}>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>Concentration Layout Map</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Antibiotic dose annotation (50→0 µg/mL)</div>
-                </div>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}>
+              <span style={{ width: 14, height: 14, borderRadius: '3px', background: '#f59e0b', display: 'inline-block' }} />
+              <span style={{ color: '#fbbf24', fontWeight: 600 }}>MIC Boundary</span>
             </div>
-          </section>
-
-          {/* ── Processing Flow Arrow ── */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', padding: '8px 0' }}>
-            <div style={{ height: '1px', flex: 1, background: 'linear-gradient(to right, transparent, var(--border-color))' }} />
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '8px 20px', borderRadius: '20px',
-              background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)',
-            }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#60a5fa', letterSpacing: '0.5px' }}>AUTOMATED IMAGE PROCESSING PIPELINE</span>
-              <ArrowRight size={16} color="#60a5fa" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}>
+              <span style={{ width: 14, height: 14, borderRadius: '3px', background: '#ef4444', display: 'inline-block' }} />
+              <span style={{ color: '#f87171', fontWeight: 600 }}>Bacterial Growth (Sub-Inhibitory)</span>
             </div>
-            <div style={{ height: '1px', flex: 1, background: 'linear-gradient(to left, transparent, var(--border-color))' }} />
           </div>
 
-          {/* ── Generated Output: Full Composite Visualization ── */}
+          {/* ── Main Result: Composite Visualization ── */}
           <section>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <Sparkles size={16} color="#10b981" />
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Generated Output — Dose-Response Alignment with Health Transition Color-Bars</h3>
-            </div>
-
-            {/* Legend bar */}
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '14px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
-                <span style={{ width: 14, height: 14, borderRadius: '3px', background: '#10b981', display: 'inline-block' }} />
-                <span style={{ color: '#34d399', fontWeight: 600 }}>Healthy (#1–#4)</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
-                <span style={{ width: 14, height: 14, borderRadius: '3px', background: '#f59e0b', display: 'inline-block' }} />
-                <span style={{ color: '#fbbf24', fontWeight: 600 }}>Sub-Healthy / MIC Boundary (#5)</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
-                <span style={{ width: 14, height: 14, borderRadius: '3px', background: '#ef4444', display: 'inline-block' }} />
-                <span style={{ color: '#f87171', fontWeight: 600 }}>Infection (#6–#12)</span>
-              </div>
-            </div>
-
-            {/* The generated composite image */}
             <div style={{
               background: 'rgba(255,255,255,0.02)',
               border: '1px solid var(--border-color)',
@@ -241,7 +145,7 @@ export default function AmrBiofilmPage() {
               </div>
             </div>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '8px', textAlign: 'center', fontStyle: 'italic' }}>
-              Ciprofloxacin × <em>E. coli</em> ATCC 25922 — Wells sorted high → low concentration, with in-between health transition color-bars (Green → Yellow MIC → Red)
+              Ciprofloxacin × <em>E. coli</em> ATCC 25922 — 12 wells sorted by antibiotic concentration with health transition color-bars
             </p>
           </section>
 

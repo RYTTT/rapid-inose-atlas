@@ -60,7 +60,7 @@ export default function SensorViewerPage() {
     setLoading(true);
     setError(null);
     try {
-      const url = `https://rapid-inose-atlas-production.up.railway.app/api/public/v1/ast-timeseries/?dataset_batch=${datasetBatch}&organism=${organismId}&signal_mode=${signalMode}&show_controls=${showControls ? '1' : '0'}`;
+      const url = `/api/ast-data?dataset_batch=${datasetBatch}&organism=${organismId}&signal_mode=${signalMode}&show_controls=${showControls ? '1' : '0'}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`API returned ${res.status}`);
       const json: AstResponse = await res.json();
