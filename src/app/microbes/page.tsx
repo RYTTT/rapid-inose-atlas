@@ -1,18 +1,29 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { MOCK_ORGANISMS_EXPANDED, OrganismDetail } from '@/lib/mockData';
 import { Search, Shield, MapPin, Beaker, Network, Sparkles, Filter, X, CheckCircle2, ChevronRight, Activity, Cpu, Layers, Clock, FileText, FlaskConical, Award } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
-export default function MicrobesPage() {
+function MicrobesContent() {
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get('search') || '';
+
   const [organisms, setOrganisms] = useState<OrganismDetail[]>(MOCK_ORGANISMS_EXPANDED);
   const [selectedOrg, setSelectedOrg] = useState<OrganismDetail>(MOCK_ORGANISMS_EXPANDED[0]);
   const [activeTab, setActiveTab] = useState<'Identity' | 'Provenance' | 'Kinetics' | 'Metabolites' | 'Readiness'>('Identity');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [selectedGram, setSelectedGram] = useState<string>('All');
   const [eskapeeOnly, setEskapeeOnly] = useState<boolean>(false);
   const [selectedStrainIdx, setSelectedStrainIdx] = useState<number>(0);
+
+  useEffect(() => {
+    const searchFromUrl = searchParams.get('search');
+    if (searchFromUrl) {
+      setSearchTerm(searchFromUrl);
+    }
+  }, [searchParams]);
 
   // Filtering logic
   const filteredOrganisms = organisms.filter(org => {
@@ -124,44 +135,50 @@ export default function MicrobesPage() {
         
         {/* Left Column: Organism Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', paddingRight: '4px' }}>
-          {filteredOrganisms.map(org => {
-            const isSelected = selectedOrg.id === org.id;
-            return (
-              <div 
-                key={org.id} 
-                onClick={() => { setSelectedOrg(org); setSelectedStrainIdx(0); }}
-                className="glass-panel" 
-                style={{ 
-                  padding: '16px', 
-                  cursor: 'pointer',
-                  borderColor: isSelected ? 'var(--accent-primary)' : 'var(--border-color)',
-                  background: isSelected ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-glass)',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.15rem', margin: 0, color: 'var(--text-primary)', fontStyle: 'italic', fontWeight: 800 }}>
-                      {org.genus} {org.species}
-                    </h3>
-                    <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-                      <span className={`badge ${org.gramStatus.includes('positive') ? 'badge-purple' : org.gramStatus.includes('Fungi') ? 'badge-amber' : 'badge-blue'}`}>
-                        {org.gramStatus}
-                      </span>
-                      {org.eskapee && <span className="badge badge-red">ESKAPEE</span>}
-                      <span className="badge badge-emerald">{org.bslLevel}</span>
+          {filteredOrganisms.length === 0 ? (
+            <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '24px', fontSize: '0.9rem' }}>
+              No pathogens matched search query "{searchTerm}".
+            </div>
+          ) : (
+            filteredOrganisms.map(org => {
+              const isSelected = selectedOrg.id === org.id;
+              return (
+                <div 
+                  key={org.id} 
+                  onClick={() => { setSelectedOrg(org); setSelectedStrainIdx(0); }}
+                  className="glass-panel" 
+                  style={{ 
+                    padding: '16px', 
+                    cursor: 'pointer',
+                    borderColor: isSelected ? 'var(--accent-primary)' : 'var(--border-color)',
+                    background: isSelected ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-glass)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <h3 style={{ fontSize: '1.15rem', margin: 0, color: 'var(--text-primary)', fontStyle: 'italic', fontWeight: 800 }}>
+                        {org.genus} {org.species}
+                      </h3>
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                        <span className={`badge ${org.gramStatus.includes('positive') ? 'badge-purple' : org.gramStatus.includes('Fungi') ? 'badge-amber' : 'badge-blue'}`}>
+                          {org.gramStatus}
+                        </span>
+                        {org.eskapee && <span className="badge badge-red">ESKAPEE</span>}
+                        <span className="badge badge-emerald">{org.bslLevel}</span>
+                      </div>
                     </div>
+                    <ChevronRight size={20} color={isSelected ? 'var(--accent-primary)' : 'var(--text-muted)'} />
                   </div>
-                  <ChevronRight size={20} color={isSelected ? 'var(--accent-primary)' : 'var(--text-muted)'} />
-                </div>
 
-                <div style={{ marginTop: '12px', fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span><strong>Strains:</strong> {org.strainCount} Isolates</span>
-                  <span style={{ color: 'var(--accent-secondary)', fontWeight: 600 }}>Avg TTD: ~{org.ttdMinutes} mins</span>
+                  <div style={{ marginTop: '12px', fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span><strong>Strains:</strong> {org.strainCount} Isolates</span>
+                    <span style={{ color: 'var(--accent-secondary)', fontWeight: 600 }}>Avg TTD: ~{org.ttdMinutes} mins</span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
         {/* Right Column: Deep Multi-Tab Organism Profile Inspector */}
@@ -373,5 +390,13 @@ export default function MicrobesPage() {
       </div>
 
     </div>
+  );
+}
+
+export default function MicrobesPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '24px', color: 'var(--text-muted)' }}>Loading Microbe Explorer...</div>}>
+      <MicrobesContent />
+    </Suspense>
   );
 }

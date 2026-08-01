@@ -1,8 +1,8 @@
 "use client";
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import "./globals.css";
 import styles from "./layout.module.css";
 import { 
@@ -16,8 +16,35 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
+  const router = useRouter();
+
   const [dataTier, setDataTier] = useState<'Bronze' | 'Silver' | 'Gold'>('Silver');
   const [viewMode, setViewMode] = useState<'Customer' | 'Internal R&D'>('Customer');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  useEffect(() => {
+    const savedTier = localStorage.getItem('rapid_data_tier') as any;
+    if (savedTier) setDataTier(savedTier);
+
+    const savedMode = localStorage.getItem('rapid_view_mode') as any;
+    if (savedMode) setViewMode(savedMode);
+  }, []);
+
+  const handleTierChange = (tier: 'Bronze' | 'Silver' | 'Gold') => {
+    setDataTier(tier);
+    localStorage.setItem('rapid_data_tier', tier);
+  };
+
+  const handleModeChange = (mode: 'Customer' | 'Internal R&D') => {
+    setViewMode(mode);
+    localStorage.setItem('rapid_view_mode', mode);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    router.push(`/microbes?search=${encodeURIComponent(searchQuery.trim())}`);
+  };
 
   const navItems = [
     { href: '/', label: 'Atlas Home', icon: Home },
@@ -96,7 +123,7 @@ export default function RootLayout({
                   {(['Bronze', 'Silver', 'Gold'] as const).map(tier => (
                     <button
                       key={tier}
-                      onClick={() => setDataTier(tier)}
+                      onClick={() => handleTierChange(tier)}
                       style={{
                         padding: '3px 10px',
                         borderRadius: '12px',
@@ -115,11 +142,13 @@ export default function RootLayout({
               </div>
 
               <div className={styles.topbarActions}>
-                {/* Search Input */}
-                <div style={{ position: 'relative' }}>
+                {/* Search Form */}
+                <form onSubmit={handleSearchSubmit} style={{ position: 'relative' }}>
                   <Search size={16} color="var(--text-secondary)" style={{ position: 'absolute', left: 12, top: 10 }} />
                   <input 
                     type="text" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search organism, VOC, sensor..." 
                     style={{ 
                       background: 'var(--bg-tertiary)', 
@@ -132,11 +161,11 @@ export default function RootLayout({
                       width: '240px'
                     }} 
                   />
-                </div>
+                </form>
 
                 {/* View Mode Toggle Button */}
                 <button
-                  onClick={() => setViewMode(viewMode === 'Customer' ? 'Internal R&D' : 'Customer')}
+                  onClick={() => handleModeChange(viewMode === 'Customer' ? 'Internal R&D' : 'Customer')}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
